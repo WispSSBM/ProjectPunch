@@ -1,5 +1,4 @@
-// locations for branching back in our hooks
-8069765c:setCharPic__end__8CSSHooksFv
-806975ac:setCharPic__cont__8CSSHooksFv
-
-10,6,00000008:selCharArchive__8CSSHooks
+// Use this file to add any extra symbol linkages not included in BrawlHeaders.
+// The format of linkages depends on where the target symbol resides:
+//  - Rels: "RelID,RelSectionId,offset:symbol_name"
+//  - Global: "address:symbol_name"
