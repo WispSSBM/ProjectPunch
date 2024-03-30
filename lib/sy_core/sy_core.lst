@@ -1,0 +1,10 @@
+224,1,00000000:InitNetwork__7SyringeFv
+224,1,000002ec:Subscribe__Q211SyringeCore15ModuleLoadEventFPFP12gfModuleInfo_v
+224,1,000007d4:syInlineHook__11SyringeCoreFUlPCv
+224,1,000007dc:syInlineHookRel__11SyringeCoreFUlPCvi
+224,1,000007e0:sySimpleHook__11SyringeCoreFUlPCv
+224,1,000007ec:sySimpleHookRel__11SyringeCoreFUlPCvi
+224,1,000008e0:syReplaceFunc__11SyringeCoreFUlPCvPPv
+224,1,000008e8:syReplaceFuncRel__11SyringeCoreFUlPCvPPvi
+224,1,00000a90:EncodeBranch__12SyringeUtilsFUlUlb
+224,1,00000abc:EncodeBranch__12SyringeUtilsFUlUl
