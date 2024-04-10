@@ -84,6 +84,6 @@ namespace ProjectPunch {
 
     int max(int a, int b);
     float fmax(float a, float b);
-    GXColor applyAlpha(GXColor input, u8 alpha);
+    Color applyAlpha(Color input, u8 alpha);
 
 }

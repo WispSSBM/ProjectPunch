@@ -1,11 +1,15 @@
+#pragma once
 // Wanton hosting of fudgepop's menu for my own purposes/modification
 
-#ifndef PP_MENU_H
-#define PP_MENU_H
+#include "pp/collections/vector.h"
+#include "pp/graphics/text_printer.h"
+#include <cstring>
 
-#include "Containers/vector.h"
-#include <Graphics/TextPrinter.h>
-#include <CLibs/cstring.h>
+
+namespace ProjectPunch {
+
+using namespace ProjectPunch::Graphics;
+using namespace ProjectPunch::Collections;
 
 #define RENDER_X_SPACING 80
 
@@ -29,13 +33,20 @@ struct OptionType {
     virtual bool isFullySelected() { return isSelected; };
     void rawRender(TextPrinter* printer, const char* buffer);
 
+    OptionType() {
+        subParent = NULL;
+        isSelected = false;
+        canModify = true;
+        terminal = true;
+    }
+
     virtual ~OptionType() {};
     const char* name;
     Page* parent;
-    SubpageOption* subParent = nullptr;
-    bool isSelected = false;
-    bool canModify = true;
-    bool terminal = true;
+    SubpageOption* subParent;
+    bool isSelected;
+    bool canModify;
+    bool terminal;
 };
 
 struct StandardOption : public OptionType {
@@ -55,29 +66,53 @@ struct Page {
     void modify(float amount);
     void render(TextPrinter* printer, char* buffer);
     void saveHighlightRegion(TextPrinter* printer) {
-        highlightedOptionTop = printer->message.yPos;
-        highlightedOptionBottom = printer->message.yPos + printer->lineHeight;
+        highlightedOptionTop = printer->charWriter->GetCursorY();
+        highlightedOptionBottom = printer->charWriter->GetCursorY() + printer->lineHeight;
     };
     virtual void show();
     virtual void select();
     virtual void deselect();
     virtual bool isFullySelected() { return options[currentOption]->isFullySelected(); };
     virtual const char* getTitle();
+    Page() {
+        currentOption = 0;
+        isSelected = false;
+        highlightedOptionBottom = 0.f;
+        highlightedOptionTop = 0.f;
+        strcpy("generic page", title);
+    }
     virtual ~Page() {}
 
     vector<OptionType*> options;
-    char currentOption = 0;
-    bool isSelected = false;
-    float highlightedOptionTop = 0.0;
-    float highlightedOptionBottom = 0.0;
+    char currentOption;
+    bool isSelected;
+    float highlightedOptionTop;
+    float highlightedOptionBottom;
     Menu* menu;
 
     // TODO: Make this a title returning function.
-    char title[256] = "generic page";
+    char title[256];
 };
 
 class Menu {
 public:
+    Menu() :
+        highlightedColor(0xFFFFFFFF),
+        selectedColor(0x3333FFFF),
+        readOnlyColor(0xAAAAAAFF),
+        defaultColor(0xCCCCCCFF),
+        bgColor(0x555555CC),
+        outlineColor(0x000000FF),
+        highlightBoxColor(0x55FF55FF)
+    {
+        opacity = 0xFF;
+        padding = 5.f;
+        visible = false;
+        paused = false;
+        selected = false;
+        currentPageIdx = -1;
+    };
+
     void nextPage();
     void prevPage();
     void addPage(Page* p);
@@ -91,23 +126,23 @@ public:
     void unpause();
     void toggle();
 
-    bool visible = false;
-    bool paused = false;
-    bool selected = false;
+    bool visible;
+    bool paused;
+    bool selected;
     vector<Page*> pages;
 
-    u8 opacity = 0xFF;
-    GXColor highlightedColor = 0xFFFFFFFF;
-    GXColor selectedColor = 0x3333FFFF;
-    GXColor readOnlyColor = 0xAAAAAAFF;
-    GXColor defaultColor = 0xCCCCCCFF;
-    GXColor bgColor = 0x555555CC;
-    GXColor outlineColor = 0x000000FF;
-    GXColor highlightBoxColor = 0x55FF55FF;
+    u8 opacity;
+    Color highlightedColor;
+    Color selectedColor;
+    Color readOnlyColor;
+    Color defaultColor;
+    Color bgColor;
+    Color outlineColor;
+    Color highlightBoxColor;
 
-    float padding = 5;
+    float padding;
 protected:
-    int currentPageIdx = -1;
+    int currentPageIdx;
     friend class Page;
 };
 
@@ -117,18 +152,23 @@ public:
     IntOption(const char* name, T& value) : value(value) {
         this->name = name;
         this->value = value;
+        asHex = false;
+        hasBounds = false;
     }
     IntOption(const char* name, T& value, T min, T max) : value(value) {
         this->name = name;
         this->value = value;
         this->min = min;
         this->max = max;
+        asHex = false;
         hasBounds = true;
     }
     IntOption(const char* name, T& value, bool canModify) : value(value) {
         this->name = name;
         this->value = value;
         this->canModify = canModify;
+        asHex = false;
+        hasBounds = false;
     }
     IntOption(const char* name, T& value, T min, T max, bool canModify) : value(value) {
         this->name = name;
@@ -136,6 +176,7 @@ public:
         this->min = min;
         this->max = max;
         this->canModify = canModify;
+        asHex = false;
         hasBounds = true;
     }
     IntOption(const char* name, T& value, T min, T max, bool canModify, bool asHex) : value(value) {
@@ -154,8 +195,8 @@ private:
     T& value;
     T max;
     T min;
-    bool hasBounds = false;
-    bool asHex = false;
+    bool hasBounds;
+    bool asHex;
 };
 
 class FloatOption : public StandardOption {
@@ -163,12 +204,16 @@ public:
     FloatOption(const char* name, float& value) : value(value) {
         this->name = name;
         this->value = value;
+        float max = NUMERIC_DEFAULT;
+        float min = NUMERIC_DEFAULT;
+        changeMultiplier = 1;
     }
     FloatOption(const char* name, float& value, float min, float max) : value(value) {
         this->name = name;
         this->value = value;
         this->min = min;
         this->max = max;
+        changeMultiplier = 1;
     }
     FloatOption(const char* name, float& value, float changeMultiplier) : value(value) {
         this->name = name;
@@ -186,6 +231,9 @@ public:
         this->name = name;
         this->value = value;
         this->canModify = canModify;
+        min = NUMERIC_DEFAULT;
+        max = NUMERIC_DEFAULT;
+        changeMultiplier = 1;
     }
     FloatOption(const char* name, float& value, float min, float max, bool canModify) : value(value) {
         this->name = name;
@@ -193,6 +241,7 @@ public:
         this->min = min;
         this->max = max;
         this->canModify = canModify;
+        changeMultiplier = 1;
     }
     void modify(float amount);
     void render(TextPrinter* printer, char* buffer);
@@ -201,9 +250,9 @@ public:
 
 private:
     float& value;
-    float max = NUMERIC_DEFAULT;
-    float min = NUMERIC_DEFAULT;
-    float changeMultiplier = 1;
+    float max;
+    float min;
+    float changeMultiplier;
 };
 
 class BoolOption : public StandardOption {
@@ -309,19 +358,23 @@ private:
 
 class SubpageOption : public OptionType {
 public:
-    SubpageOption(const char* name) {
+    SubpageOption(const char* name): currentOption(_index) {
+        setDefaults();
         this->name = name;
     }
-    SubpageOption(const char* name, int height, int depth) {
+    SubpageOption(const char* name, int height, int depth): currentOption(_index) {
+        setDefaults();
         this->name = name;
         this->height = height;
         this->depth = depth;
     }
-    SubpageOption(const char* name, bool collapsible) {
+    SubpageOption(const char* name, bool collapsible): currentOption(_index) {
+        setDefaults();
         this->name = name;
         this->collapsible = collapsible;
     }
-    SubpageOption(const char* name, int height, int depth, bool collapsible) {
+    SubpageOption(const char* name, int height, int depth, bool collapsible): currentOption(_index) {
+        setDefaults();
         this->name = name;
         this->height = height;
         this->depth = depth;
@@ -352,18 +405,32 @@ public:
         options.clear();
     }
 
-    vector<OptionType*> options = vector<OptionType*>();
-    int& currentOption = this->_index;
-    int _index = -1;
-    char indent = 16;
-    char scrollIdx = 0;
-    int height = 10;
-    char depth = 1;
-    u32 modifiableChildren = 0;
-    bool hasSelection = false;
-    bool collapsible = false;
-    bool collapsed = true;
-    bool terminal = false;
+    vector<OptionType*> options;
+    int& currentOption;
+    int _index;
+    char indent;
+    char scrollIdx;
+    int height;
+    char depth;
+    u32 modifiableChildren;
+    bool hasSelection;
+    bool collapsible;
+    bool collapsed;
+    bool terminal;
+private:
+    void setDefaults() {
+        options = vector<OptionType*>();
+        _index = -1;
+        indent = 16;
+        scrollIdx = 0;
+        height = 10;
+        depth = 1;
+        modifiableChildren = 0;
+        hasSelection = false;
+        collapsible = false;
+        collapsed = true;
+        terminal = false;
+    };
 };
 
 class SpacerOption : public StandardOption {
@@ -385,11 +452,12 @@ void IntOption<T>::modify(float amount) {
 template <typename T>
 void IntOption<T>::render(TextPrinter* printer, char* buffer) {
     if (asHex) {
-      _sprintf(buffer, "%s: 0x%02X", name, value);
+      sprintf(buffer, "%s: 0x%02X", name, value);
     } else {
-      _sprintf(buffer, "%s: %02d", name, value);
+      sprintf(buffer, "%s: %02d", name, value);
     }
     printer->printLine(buffer);
 }
 #pragma endregion
-#endif
+
+} // namespace

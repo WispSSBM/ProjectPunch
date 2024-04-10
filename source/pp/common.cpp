@@ -23,7 +23,7 @@ int max(int x1, int x2) {
     return x2;
 }
 
-GXColor applyAlpha(GXColor input, u8 alpha) {
+Color applyAlpha(Color input, u8 alpha) {
     float alphaRatio = ((float)alpha / 255);
     input.a *= (float)alpha / (float)255;
     return input;

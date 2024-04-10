@@ -1,10 +1,12 @@
 // Wanton hoist of fudgepop's menu for my own purposes/modification
 
-#include "menu.h"
-#include "common.h"
-#include <Graphics/Drawable.h>
+#include "pp/menu.h"
+#include "pp/common.h"
+#include "pp/graphics/drawable.h"
+#include <OS/OSError.h>
 
-#define OSReport ((void (*)(const char* text, ...)) 0x801d8600)
+
+namespace ProjectPunch {
 
 #pragma region Page
 void Page::addOption(OptionType* option) {
@@ -60,7 +62,7 @@ void Page::modify(float amount) {
 }
 
 void Page::render(TextPrinter* printer, char* buffer) {
-    auto& m = *menu;
+    Menu& m = *menu;
     char len = options.size();
 
     for (char i = 0; i < len; i++) {
@@ -112,7 +114,7 @@ void Menu::prevPage() {
 }
 
 Page* Menu::getCurrentPage() {
-    if (pages.size() == 0) { return nullptr; }
+    if (pages.size() == 0) { return NULL; }
     return pages[currentPageIdx];
 }
 
@@ -232,13 +234,13 @@ void NamedIndexOption::render(TextPrinter* printer, char* buffer) {
 void HexObserver::modify(float amount) {}
 void HexObserver::render(TextPrinter* printer, char* buffer) {
     switch (size) {
-    case HexSize::CHAR:
+    case CHAR:
         sprintf(buffer, "%s: 0x%02x", name, *value);
         break;
-    case HexSize::SHORT:
+    case SHORT:
         sprintf(buffer, "%s: 0x%04x", name, *value);
         break;
-    case HexSize::INT:
+    case INT:
         sprintf(buffer, "%s: 0x%08x", name, *value);
         break;
     }
@@ -256,7 +258,7 @@ void SubpageOption::deselect() {
     */
 
     if (hasSelection) {
-        auto& opt = currentOptionRef();
+        OptionType& opt = currentOptionRef();
         opt.deselect();
         hasSelection = opt.isSelected;
     } else {
@@ -281,7 +283,7 @@ void SubpageOption::select() {
         if (!hasCurrentOption()) {
             deselect();
         } else {
-            auto& option = currentOptionRef(); 
+            OptionType& option = currentOptionRef(); 
              if (option.canModify) {
                 currentOptionRef().select();
                 hasSelection = option.isSelected;
@@ -386,7 +388,7 @@ void SubpageOption::down() {
 void SubpageOption::render(TextPrinter* printer, char* buffer) {
     float oldXPos;
     int len = options.size();
-    auto& m = *(parent->menu);
+    Menu& m = *(parent->menu);
 
     if (isSelected && currentOption == -1) {
         this->parent->saveHighlightRegion(printer);
@@ -398,8 +400,8 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
 
     if ((collapsible && !collapsed) || !(collapsible)) {
         for (int i = 0; i < options.size(); i++) {
-            oldXPos = printer->message.xPos;
-            printer->message.xPos += (indent + ((indent * (depth + 1))));
+            oldXPos = printer->charWriter->GetCursorX();
+            printer->charWriter->m_xPos += (indent + ((indent * (depth + 1))));
             if (!options[i]->terminal) {
                 options[i]->render(printer, buffer);
                 continue;
@@ -419,7 +421,7 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
             }
 
             options[i]->render(printer, buffer);
-            printer->message.xPos = oldXPos;
+            printer->charWriter->SetCursorX(oldXPos);
         }
     }
 }
@@ -463,3 +465,5 @@ int SubpageOption::getOptionCount() {
 }
 
 #pragma endregion
+
+} // namespace

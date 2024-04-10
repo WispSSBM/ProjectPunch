@@ -75,7 +75,6 @@ void helloWorld() {
                 delete popup;
                 popup = 0;
             } else {
-                OSReport("Drawing popup...");
                 popup->draw(printer);
             }
         }
