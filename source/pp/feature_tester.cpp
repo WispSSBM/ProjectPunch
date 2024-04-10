@@ -1,6 +1,8 @@
+#ifdef PP_FEATURE_TEST
 #include <OS/OSError.h>
 #include "gf/gf_scene.h"
 
+#include "pp/main.h"
 #include "pp/common.h"
 #include "pp/feature_tester.h"
 #include "pp/collections/linkedlist.h"
@@ -11,8 +13,6 @@
 #include "pp/input/pad.h"
 
 namespace ProjectPunch {
-
-bool initialized = false;
 Graphics::TextPrinter printer = Graphics::TextPrinter();
 ProjectPunch::Popup* popup = 0;
 
@@ -76,3 +76,4 @@ void featureTester() {
 }
 
 } // namespace
+#endif

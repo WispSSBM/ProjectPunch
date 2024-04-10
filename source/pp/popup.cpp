@@ -68,13 +68,13 @@ void Popup::draw(TextPrinter& printer) {
         #endif
 
         printer.saveBoundingBox(gPopupConfig.bgColor, gPopupConfig.outlineColor, gPopupConfig.highlightColor, 2, gPopupConfig.popupPadding);
-        vector<Drawable*>& shapes = renderables.items.preFrame;
-        shapes.push(progressRect);
+        vector& shapes = renderables.items.preFrame;
+        shapes.push(static_cast<Drawable*>(progressRect));
         // put the progress rect underneath the outline/highlight.
         int i = shapes.size()-1;
-        Drawable* n = shapes[i];
-        Drawable* nm1 = shapes[i-1];
-        Drawable* nm2 = shapes[i-2];
+        void* n = shapes[i];
+        void* nm1 = shapes[i-1];
+        void* nm2 = shapes[i-2];
         shapes.set(i, nm1);
         shapes.set(i-1, nm2);
         shapes.set(i-2, n);

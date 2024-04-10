@@ -28,4 +28,19 @@ Color applyAlpha(Color input, u8 alpha) {
     input.a *= (float)alpha / (float)255;
     return input;
 }
+
+//hacky way to check if in game
+SCENE_TYPE getScene() {
+    u32* ptr = (u32*) (0x805b4fd8 + 0xd4);
+    ptr = (u32*) *ptr;
+    if(ptr < (u32*)0xA0000000) {
+        ptr = (u32*) *(ptr + (0x10 / 4));
+        if(ptr != NULL) {
+            u32 scene = *(ptr + (8 / 4));
+            return (SCENE_TYPE)scene;
+        }
+    }
+    return UNKNOWN;
+}
+
 }

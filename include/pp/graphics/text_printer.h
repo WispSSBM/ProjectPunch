@@ -8,7 +8,6 @@
 #include <OS/OSError.h>
 
 #include <ms/ms_char_writer.h>
-#include <vector.h>
 
 #include "pp/common.h"
 

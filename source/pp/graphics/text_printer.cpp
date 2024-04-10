@@ -86,6 +86,14 @@ void TextPrinter::setup(bool is2D) {
 }
 
 void TextPrinter::printLine(const char *chars) {
+    #ifdef PPUNCH_TEXTPRINTER_DEBUG
+    const ms::CharWriter& cw = *charWriter;
+    OSReport("DEBUG: textPrinter print (cw.x: %f, cw.y: %f, cw.scalex: %f, cw.scaley: %f: %s\n", 
+        cw.m_xPos, cw.m_yPos,
+        cw.m_fontScaleX, cw.m_fontScaleY,
+        chars
+    );
+    #endif
     print(chars);
     newLine();
 }
@@ -145,8 +153,8 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
     );
 
     // OSReport("Rect in (t, b, l, r): %.3f, %.3f, %.3f, %.3f\n", r.top, r.bottom, r.left, r.right);
-    if (renderPre) renderables.items.preFrame.push(r);
-    else renderables.items.frame.push(r);
+    if (renderPre) renderables.items.preFrame.push(static_cast<Drawable*>(r));
+    else renderables.items.frame.push(static_cast<Drawable*>(r));
 
     if (outlineWidth != 0) {
         RectOutline* ro = new RectOutline(
@@ -173,10 +181,10 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
             is2D
         );
 
-        if (renderPre) renderables.items.preFrame.push(ro);
-        else renderables.items.frame.push(ro);
-        if (renderPre) renderables.items.preFrame.push(roHighlight);
-        else renderables.items.frame.push(roHighlight);
+        if (renderPre) renderables.items.preFrame.push(static_cast<Drawable*>(ro));
+        else renderables.items.frame.push(static_cast<Drawable*>(ro));
+        if (renderPre) renderables.items.preFrame.push(static_cast<Drawable*>(roHighlight));
+        else renderables.items.frame.push(static_cast<Drawable*>(roHighlight));
     }
 }
 

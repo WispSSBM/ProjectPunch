@@ -25,6 +25,10 @@ linkedlist<Popup> playerPopups[PP_MAX_PLAYERS] = {
 };
 /************/
 
+void ui_cpp_static_dtor() {
+    delete &punchMenu;
+}
+
 void PpunchMenu::init() {
     /* Controls Info Page */
     OSReport("Initializing Project Punch menu.\n");
@@ -55,14 +59,19 @@ void PpunchMenu::init() {
         newPage.addOption(new SpacerOption());
 
         SubpageOption& playerInfoSubpage = *(new SubpageOption("Fighter Info", true));
+        newPage.addOption(&playerInfoSubpage);
+
+        OSReport("Created player info subpage @ 0x%0X\n", &playerInfoSubpage);
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Action ID", &player, &PlayerData::action));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Action", &player, &PlayerData::actionStr));
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Subaction ID", &player, &PlayerData::subaction));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Subaction Name", &player, &PlayerData::subactionStr));
         playerInfoSubpage.addOption(new PlayerDataFlagObserver("RA Bits", &player, &PlayerData::raLowBits));
-        newPage.addOption(&playerInfoSubpage);
-        addPage(&newPage);
+        for (int ctr = 0; ctr < playerInfoSubpage.options.size(); ctr++) {
+            OSReport("Subpage @ 0x%0X has option %d at 0x%0X\n", &playerInfoSubpage, ctr, playerInfoSubpage.options[ctr]);
+        }
 
+        addPage(&newPage);
     }
 
     // TODO: Reimplement scrolling. This is w/e for now.
@@ -111,6 +120,9 @@ void PpunchMenu::init() {
 
 void PpunchMenu::cleanup() {
     currentPageIdx = 0;
+    for (int i = 0; i < pages.size(); i++) {
+        delete reinterpret_cast<Page*>(pages[i]);
+    }
     pages.clear();
     initialized = false;
     paused = false;
@@ -218,7 +230,6 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
     printer.renderPre = true;
     ms::CharWriter& charWriter = *printer.charWriter;
     charWriter.SetCursor(pos.x + padding, pos.y + padding, 0);
-    printer.startBoundingBox();
 
     /* Print title */
     Page& currentPage = *getCurrentPage();
@@ -233,6 +244,8 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
     printer.charWriter->m_edgeColor = Color(0x000000FF).utColor;
     printer.charWriter->m_font = END_FONT;
     printer.setTextColor(applyAlpha(defaultColor, opacity));
+
+    printer.startBoundingBox();
     printer.printLine(buffer);
     
     /* Print body */
@@ -244,6 +257,7 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
     printer.lineHeight = lineHeight();
     charWriter.m_yPos += padding;
 
+    OSReport("Rendering current page (0x%x) out of %d pages\n", &currentPage, pages.size());
     currentPage.render(&printer, buffer);
 
     /* Draw graphics */
@@ -258,7 +272,7 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
 void PpunchMenu::drawBg(TextPrinter& printer) {
     ms::CharWriter& charWriter = *printer.charWriter;
     // void Te    
-    renderables.items.preFrame.push(new Graphics::Rect(
+    renderables.items.preFrame.push(static_cast<Drawable*>(new Graphics::Rect(
         0,
         1,
         applyAlpha(bgColor, opacity).gxColor,
@@ -268,13 +282,13 @@ void PpunchMenu::drawBg(TextPrinter& printer) {
         (float)pos.x,
         (float)(pos.x + size.x),
         true
-    ));
+    )));
 }
 
 void PpunchMenu::drawOutline(TextPrinter& printer) {
     ms::CharWriter& message = *printer.charWriter;
 
-    renderables.items.preFrame.push(new RectOutline(
+    renderables.items.preFrame.push(static_cast<Drawable*>(new RectOutline(
             0,
             1,
             applyAlpha(outlineColor, opacity).gxColor,
@@ -285,9 +299,9 @@ void PpunchMenu::drawOutline(TextPrinter& printer) {
             (float)(pos.x + size.x),
             outlineWidth * 6,
             true
-    ));
+    )));
 
-    renderables.items.preFrame.push(new RectOutline(
+    renderables.items.preFrame.push(static_cast<Drawable*>(new RectOutline(
             0,
             1,
             applyAlpha(0xFFFFFFFF, opacity).gxColor,
@@ -298,15 +312,15 @@ void PpunchMenu::drawOutline(TextPrinter& printer) {
             (float)(pos.x + size.x),
             12,
             true
-    ));
+    )));
 }
 
 void PpunchMenu::drawHighlightBox() {
-    Page& currentPage = *pages[currentPageIdx];
+    Page& currentPage = *(reinterpret_cast<Page*>(pages[currentPageIdx]));
     if (!(currentPage.highlightedOptionBottom == 0 || currentPage.highlightedOptionTop == 0)) { 
         // OSReport("Drawing highlight top: %0.01f bot: %0.01f\n", currentPage.highlightedOptionTop, currentPage.highlightedOptionBottom);
 
-        renderables.items.preFrame.push(new Rect (
+        renderables.items.preFrame.push(static_cast<Drawable*>(new Rect (
             0,
             1,
             applyAlpha(highlightBoxColor, opacity).gxColor,
@@ -315,11 +329,95 @@ void PpunchMenu::drawHighlightBox() {
             (float)pos.x,
             (float)(pos.x + size.x),
             true
-        ));
+        )));
 
         currentPage.highlightedOptionBottom = 0;
         currentPage.highlightedOptionTop = 0;
     }
+}
+
+#define P1_2P_COORDS Coord2D(200, 350)
+#define P2_2P_COORDS Coord2D(355, 350)
+#define P1_4P_COORDS Coord2D(50, 350)
+#define P2_4P_COORDS Coord2D(200, 350)
+#define P3_4P_COORDS Coord2D(350, 350)
+#define P4_4P_COORDS Coord2D(500, 350)
+Coord2D getHpPopupBoxCoords(int playerNum) {
+    SCENE_TYPE scene = getScene();
+    char totalPlayers;
+
+    // I don't know why training mode has the player numbers
+    // backwards. :(
+    if (scene == TRAINING_MODE_MMS) {
+        totalPlayers = 4;
+        switch(playerNum){
+        case 0:
+            return P2_4P_COORDS;
+        case 1:
+            return P1_4P_COORDS;
+        default:
+            return Coord2D(0, 0);
+        }
+    }
+
+    totalPlayers = g_ftManager->getEntryCount();
+
+    if (totalPlayers == 2) {
+        switch(playerNum) {
+            case 0:
+                return P1_2P_COORDS;
+            case 1:
+                return P2_2P_COORDS;
+            default:
+                return Coord2D(0, 0);
+        }
+    }
+    if (totalPlayers == 4) {
+        switch(playerNum) {
+            case 0:
+                return P1_4P_COORDS;
+            case 1:
+                return P2_4P_COORDS;
+            case 2:
+                return P3_4P_COORDS;
+            case 3:
+                return P4_4P_COORDS;
+            default:
+                return Coord2D(0, 0);
+        }
+    }
+
+    // TODO: Other numbers of players.
+
+    return Coord2D(0, 0);
+}
+
+
+
+void drawAllPopups() {
+    for(int i = 0; i < PP_MAX_PLAYERS; i++) {
+        LinkedlistIterator<Popup> itr = LinkedlistIterator<Popup>(playerPopups[i]);
+        Popup* popup;
+        Coord2D coords = getHpPopupBoxCoords(i);
+
+
+        while ((popup = itr.next()) != NULL) {
+            if (popup->expired()) {
+                itr.deleteHere();
+                delete popup;
+            } else {
+                popup->coords = coords;
+                // OSReport("Set popup coords to %d,%d\n", coords.x, coords.y);
+                popup->draw(printer);
+
+                coords.y -= PP_POPUP_VERTICAL_OFFSET;
+            }
+        }
+    }
+}
+
+void addPopup(int playerNum, Popup& popup) {
+    playerPopups[playerNum].append(popup);
 }
 
 } // namespace

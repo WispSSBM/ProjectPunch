@@ -6,6 +6,9 @@ namespace ProjectPunch {
 // TODO: Maybe some of these exist as fixed strings already in the brawl disc.
 // F.e. several characters exist around 0x8059dfd8
 const char* fighterName(ftKind kind) {
+    return "UNKNOWN";
+}
+    /*
     switch (kind) {
     case (Fighter_Mario): return "Mario";
     case (Fighter_Donkey): return "DK";
@@ -65,4 +68,5 @@ const char* fighterName(ftKind kind) {
         return "UNKNOWN";
     };
 }
+    */
 }

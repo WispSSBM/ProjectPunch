@@ -1,34 +1,52 @@
+#include <cstring>
+#include <so/work/so_general_work_abstract.h>
+#include <so/work/so_work_manage_module_impl.h>
+#include <ft/fighter.h>
+#include <ft/ft_manager.h>
+#include <gf/gf_scene.h>
+#include <gf/gf_heap_manager.h>
 
-#include "main.h"
+#include "pp/main.h"
+#include "pp/ui.h"
+#include "pp/collections/linkedlist.h"
+#include "pp/graphics/draw.h"
+#include "pp/input/pad.h"
+#include "pp/ft_cancel_module.h"
 
-#include <Brawl/FT/ftOwner.h>
+using namespace ProjectPunch::Graphics;
+using namespace ProjectPunch::Input;
+using namespace ProjectPunch::Collections;
 
+namespace ProjectPunch {
 bool initialized = false;
 
-// responsible for pausing exeuction of the game itself while the code menu is up
-INJECTION("TOGGLE_PAUSE", 0x8002E5B0, R"(
-    mr r3, r25
-    bl checkMenuPaused 
-    lwz r3, 0 (r25)
-)");
 
-extern "C" void checkMenuPaused(char* gfTaskSchedulerInst) {
+void checkMenuPaused(char* gfTaskSchedulerInst) {
     // OSReport("Visible: %s, paused: %s\n", visible ? "T" : "F", paused ? "T" : "F");
+    //OSReport("Trying to read gfTaskSchedulerInst @ 0x%0X\n", gfTaskSchedulerInst);
     if (punchMenu.paused && punchMenu.visible) { gfTaskSchedulerInst[0xB] |= 0x8; }
     else { gfTaskSchedulerInst[0xB] &= ~0x8; }
 }
 
-void printRABools(const soWorkManageModuleImpl& workModule) {
-    auto RABoolArr = (*(u32 (*)[workModule.RAVariables->bitsSize])workModule.RAVariables->bitVariables);
+soGeneralWorkSimple* getWorkVars(const Fighter& fighter, WorkModuleVarType varType) {
+    // assume the work manage module is of the normal impl type. Not technically typesafe, could use the proper brawl
+    // api surface later.
+    const soWorkManageModuleImpl& workModule = *reinterpret_cast<const soWorkManageModuleImpl*>(fighter.m_moduleAccesser->getWorkManageModule());
+    return reinterpret_cast<soGeneralWorkSimple*>(workModule.m_generalWorks[varType]);
+}
+/*
+void printRABools(const Fighter& fighter) {
+    const soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
+    u32 *raBools = raVars.m_flagWorks;
     u32 boolNum;
     u32 chunk;
     char boolVal;
 
-    OSReport("RA bools (%x): ", RABoolArr);
-    for (int i = 0; i < workModule.RAVariables->bitsSize; i++) {
-        chunk = RABoolArr[i];
-        for (int j = 0; j < (sizeof(boolNum)*8 - 1); j++) {
-            boolNum = (i*sizeof(boolNum)) + (sizeof(boolNum)-j);
+    OSReport("RA bools (%x): ", raBools);
+    for (u32 i = 0; i < raVars.m_flagWorkSize; i++) {
+        chunk = raBools[i];
+        for (int j = 0; j < (sizeof(chunk)*8 - 1); j++) {
+            boolNum = (i*sizeof(chunk)) + (sizeof(chunk)-j);
             boolVal = (chunk & (0x1 << j)) >> j;
             OSReport("%d", boolVal);
 
@@ -40,19 +58,22 @@ void printRABools(const soWorkManageModuleImpl& workModule) {
     }
     OSReport("\n");
 }
+*/
 
-bool getRABit(const soWorkManageModuleImpl& workModule, u32 idx) {
-    auto RABitsCnt = workModule.RAVariables->bitsSize;
-    auto RABitsAry = (*(u32 (*)[RABitsCnt])workModule.RAVariables->bitVariables);
+bool getRABit(const Fighter& fighter, u32 idx) {
+    soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
+    // array
+    u32* raBools =  raVars.m_flagWorks;
+    int bitFieldsSize = raVars.m_flagWorkSize;
 
     // printRABools(workModule);
 
-    if (!(idx < RABitsCnt*8*4)) {
-        OSReport("Warning: asked for invalid RA bit %d from workModule %x.\n", idx, (void*)&workModule);
+    if (!(idx < bitFieldsSize*8*4)) {
+        OSReport("Warning: asked for invalid RA bit %d from workModule %x.\n", idx, (void*)fighter.m_moduleAccesser->getWorkManageModule());
         return false;
     }
 
-    u32 bitsChunk = RABitsAry[idx / 32];
+    u32 bitsChunk = raBools[idx / 32];
     char remainder = idx % 32;
     if ((bitsChunk & (1 << remainder) >> remainder) == 0) {
         return false;
@@ -61,27 +82,19 @@ bool getRABit(const soWorkManageModuleImpl& workModule, u32 idx) {
     }
 }
 
-void breakpoint() {
-    OSReport("hello.\n");
-}
-
-void printMessage(char const* msg, float xPos, float yPos, GXColor color = COLOR_WHITE){
+void printMessage(char const* msg, float xPos, float yPos, Color color = COLOR_WHITE){
     OSReport("%s\n", msg);
     printer.setup();
     printer.setTextColor(color);
     printer.renderPre = true;
-    Message* printerMsgObj = &(printer.message);
+    ms::CharWriter& charWriter = *(printer.charWriter);
     printer.lineHeight = punchMenu.lineHeight();
-    printerMsgObj->fontScaleY = punchMenu.baseFontScale.y;
-    printerMsgObj->fontScaleX = punchMenu.baseFontScale.x;
-    printerMsgObj->xPos = xPos;
-    printerMsgObj->yPos = yPos;
-    printerMsgObj->zPos = 0;
-    printer.start2D();
+    charWriter.SetScale(punchMenu.baseFontScale.x, punchMenu.baseFontScale.y);
+    charWriter.SetCursor(xPos, yPos, 0);
 
     printer.startBoundingBox();
     printer.print(msg);
-    printer.saveBoundingBox(printer.bboxIdx, COLOR_TRANSPARENT_GREY, 10);
+    printer.saveBoundingBox(COLOR_TRANSPARENT_GREY, 10);
 }
 
 void printFighterState(PlayerData& playerData) {
@@ -89,27 +102,30 @@ void printFighterState(PlayerData& playerData) {
     printer.setup();
     printer.renderPre = true;
     printer.setTextColor(0xFFFFFFFF);
-    auto& msg = printer.message;
+    ms::CharWriter& charWriter = *(printer.charWriter);
     printer.lineHeight = punchMenu.lineHeight();
-    msg.fontScaleY = punchMenu.baseFontScale.y * punchMenu.fontScaleMultiplier;
-    msg.fontScaleX = punchMenu.baseFontScale.x * punchMenu.fontScaleMultiplier;
-    msg.edgeWidth = 1.0f;
-    msg.edgeColor = 0x000000FF;
-    msg.xPos = 50;
-    msg.yPos = 50;
-    printer.start2D();
+    charWriter.SetScale(
+        punchMenu.baseFontScale.x * punchMenu.fontScaleMultiplier,
+        punchMenu.baseFontScale.y * punchMenu.fontScaleMultiplier
+    );
+    
+    charWriter.SetEdge(1.0f, Color(0x000000FF).utColor);
+    charWriter.SetCursor(
+        50,
+        50
+    );
 
     printer.startBoundingBox();
     printer.print(strManipBuffer);
-    printer.saveBoundingBox(printer.bboxIdx, 0, 10);
+    printer.saveBoundingBox(0, 10);
 }
 
 inline bool needsInitializing() {
     if (initialized) return false;
-    auto fighters = FIGHTER_MANAGER->getEntryCount();
+    int fighters = g_ftManager->getEntryCount();
     for (char i =  0; i < fighters; i++) {
-        auto entryId = FIGHTER_MANAGER->getEntryIdFromIndex(i);
-        auto opStatus = FIGHTER_MANAGER->getFighterOperationStatus(entryId);
+        int entryId = g_ftManager->getEntryIdFromIndex(i);
+        int opStatus = g_ftManager->getFighterOperationStatus(entryId);
         #ifdef PP_INIT_DEBUG
         OSReport("Fighter %d status %d\n", entryId, opStatus);
         #endif
@@ -122,19 +138,19 @@ inline bool needsInitializing() {
 }
 
 // calls our function
-INJECTION("update_pre_frame", /*0x8001792c*/ 0x800177B0, R"(
-    SAVE_REGS
-    bl updatePreFrame
-    RESTORE_REGS
-    or r0, r0, r3
-)");
-extern "C" void updatePreFrame() {
-    SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
+void updatePreFrame() {
+    renderables.renderPre();
 
-    if (sceneType == SCENE_TYPE::VS || sceneType == SCENE_TYPE::TRAINING_MODE_MMS) {
-        frameCounter += 1;
-        renderables.renderPre();
-        renderables.clearAll();
+    // todo use gfSceneManager to do this, but both training and normal fights are scMelee, so something else
+    // is needed to distinguish them.
+    SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
+    frameCounter += 1;
+
+    if (frameCounter % 300 == 0) {
+        gfHeapManager::dumpList();
+    }
+
+    if (sceneType == VS || sceneType == TRAINING_MODE_MMS) {
         if (!initialized && !needsInitializing()) {
             #ifdef PP_INIT_DEBUG
             OSReport("Bailing out to start early\n");
@@ -144,7 +160,7 @@ extern "C" void updatePreFrame() {
         }
 
         int fighterCount;
-        fighterCount = FIGHTER_MANAGER->getEntryCount();
+        fighterCount = g_ftManager->getEntryCount();
         u8 idx = 0;
         for (idx = 0; idx < fighterCount; idx++) {
             gatherData(idx);
@@ -160,7 +176,7 @@ extern "C" void updatePreFrame() {
         }
 
         for(idx = 0; idx < fighterCount; idx++) {
-            auto& playerData = allPlayerData[idx];
+            PlayerData& playerData = allPlayerData[idx];
 
             if (playerData.didActionChange() && isAttackingAction(playerData.action())) {
                 playerData.didStartAttack = true;
@@ -179,7 +195,7 @@ extern "C" void updatePreFrame() {
             checkAttackTargetActionable(idx);
         }
 
-        if (FIGHTER_MANAGER->getEntryCount() > 0) {
+        if (g_ftManager->getEntryCount() > 0) {
             if (initialized) {
                 punchMenu.handleInput();
                 punchMenu.render(printer, strManipBuffer, PP_STR_MANIP_SIZE);
@@ -187,14 +203,14 @@ extern "C" void updatePreFrame() {
                 initialized = true;
                 punchMenu.init();
 
-                PADButtons pad;
-                pad.bits = (
-                    PREVIOUS_PADS[0].button.bits 
-                    | PREVIOUS_PADS[1].button.bits 
-                    | PREVIOUS_PADS[2].button.bits 
-                    | PREVIOUS_PADS[3].button.bits
+                PadStatus pad;
+                pad.btns.bits = (
+                    g_padStatus[0].btns.bits 
+                    | g_padStatus[1].btns.bits 
+                    | g_padStatus[2].btns.bits 
+                    | g_padStatus[3].btns.bits
                 );
-                if (!(pad.L == true || pad.R == true)) {
+                if (!(pad.btns.L == true || pad.btns.R == true)) {
                     punchMenu.toggle();
                 }
             }
@@ -212,37 +228,41 @@ extern "C" void updatePreFrame() {
     }
 
 
+    renderables.renderAll();
     startNormalDraw();
 }
 
-void debugWorkModule(const soWorkManageModuleImpl& workModule) {
+void debugWorkModule(const Fighter& fighter) {
     u32 i;
-    auto RABasicsArr = (*(int(*)[workModule.RAVariables->basicsSize])workModule.RAVariables->basics);
-    auto RAFloatArr = (*(int(*)[workModule.RAVariables->floatsSize])workModule.RAVariables->floats);
-    auto LABasicsArr = (*(int(*)[workModule.LAVariables->basicsSize])workModule.LAVariables->basics);
-    auto LAFloatArr = (*(float(*)[workModule.LAVariables->floatsSize])workModule.LAVariables->floats);
 
-    for(i = 0; i < workModule.RAVariables->basicsSize; i++) {
-        if (RABasicsArr[i] != 0 && RABasicsArr[i] != -1){
-            OSReport("\tRABasic #%d: %d \n", i, RABasicsArr[i]);
+    soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
+    soGeneralWorkSimple& laVars = *getWorkVars(fighter, LA_VARS);
+    int* raBasics = raVars.m_intWorks;
+    float* raFloats = raVars.m_floatWorks;
+    int* laBasics = laVars.m_intWorks;
+    float* laFloats = laVars.m_floatWorks;
+
+    for(i = 0; i < raVars.m_intWorkSize; i++) {
+        if (raBasics[i] != 0 && raBasics[i] != -1){
+            OSReport("\tRABasic #%d: %d \n", i, raBasics[i]);
         }
     }
 
-    for (i = 0; i < workModule.RAVariables->floatsSize; i++) {
-        if (RAFloatArr[i] != 0 && RAFloatArr[i] != -1) {
-            OSReport("\tRAFloat #%d: %0.2f\n", i, RAFloatArr[i]);
+    for (i = 0; i < raVars.m_floatWorkSize; i++) {
+        if (raFloats[i] != 0 && raFloats[i] != -1) {
+            OSReport("\tRAFloat #%d: %0.2f\n", i, raFloats[i]);
         }
     }
 
-    for(i = 0; i < workModule.LAVariables->basicsSize; i++) {
-        if (LABasicsArr[i] != 0 && LABasicsArr[i] != -1) {
-            OSReport("\tLABasic #%d: %d \n", i, LABasicsArr[i]);
+    for(i = 0; i < laVars.m_intWorkSize; i++) {
+        if (laBasics[i] != 0 && laBasics[i] != -1) {
+            OSReport("\tLABasic #%d: %d \n", i, laBasics[i]);
         }
     }
 
-    for (i = 0; i < workModule.LAVariables->floatsSize; i++) {
-        if (LAFloatArr[i] != 0 && LAFloatArr[i] != -1) {
-            OSReport("\tLAFloat #%d: %0.2f\n", i, LAFloatArr[i]);
+    for (i = 0; i < laVars.m_floatWorkSize; i++) {
+        if (laFloats[i] != 0 && laFloats[i] != -1) {
+            OSReport("\tLAFloat #%d: %0.2f\n", i, laFloats[i]);
         }
     }
 
@@ -256,14 +276,13 @@ void gatherData(u8 player) {
         return;
     }
 
-    EntryID entryId = FIGHTER_MANAGER->getEntryIdFromIndex(player);
-    Fighter* fighter = FIGHTER_MANAGER->getFighter(entryId, 0);
-    u8 playerNumber = FIGHTER_MANAGER->getPlayerNo(entryId);
+    int entryId = g_ftManager->getEntryIdFromIndex(player);
+    Fighter* fighter = g_ftManager->getFighter(entryId, 0);
+    u8 playerNumber = g_ftManager->getPlayerNo(entryId);
 
     if (needsInitializing()) {
-        auto* ftInput = FIGHTER_MANAGER->getInput(entryId);
-        int opType = FIGHTER_MANAGER->getFighterOperationType(entryId);
-        OSReport("Player %d op type: %d input: 0x%x\n", playerNumber, opType, ftInput);
+        int opType = g_ftManager->getFighterOperationType(entryId);
+        OSReport("Player %d op type: %d input: 0x%x\n", playerNumber, opType);
         if (opType != 0) {
             allPlayerData[playerNumber].showOnShieldAdvantage = false;
             allPlayerData[playerNumber].showOnHitAdvantage = false;
@@ -278,15 +297,15 @@ void gatherData(u8 player) {
     playerData.prepareNextFrame();
     PlayerDataOnFrame& currentData = *playerData.current;
     PlayerDataOnFrame& prevData = *playerData.current;
-    playerData.charId = (CHAR_ID)(fighter->getFtKind());
+    playerData.charId = (ftKind)(fighter->getFtKind());
 
     allPlayerData[player].playerNumber = playerNumber;
+    soModuleAccesser& modules = *fighter->m_moduleAccesser;
 
-    auto workModule = fighter->modules->workModule;
-    auto statusModule = fighter->modules->statusModule;
-    auto motionModule = fighter->modules->motionModule;
-    auto stopModule = fighter->modules->ftStopModule;
-    auto cancelModule = fighter->getCancelModule();
+    soWorkManageModuleImpl* workModule = dynamic_cast<soWorkManageModuleImpl*>(modules.getWorkManageModule());
+    soStatusModule* statusModule = modules.getStatusModule();
+    soMotionModuleImpl* motionModule = dynamic_cast<soMotionModuleImpl*>(modules.getMotionModule());
+    ftCancelModule* cancelModule = (ftCancelModule*)fighter->getCancelModule();
 
     /*
     OSReport(
@@ -299,27 +318,30 @@ void gatherData(u8 player) {
     );
     */
 
-    // OSReport("Module Locations:\n\tworkModule: %x\n\tstatusModule: %x\n\tmotionModule: %x\n", workModule, statusModule, motionModule);
+    // OSReport("Module Locations:\n\tworkModule: %x\n/\tstatusModule: %x\n\tmotionModule: %x\n", workModule, statusModule, motionModule);
 
-    if (statusModule != nullptr) {
+    if (statusModule != NULL) {
         /* OSReport("Action number: %x\n", statusModule->action); */
         // never seems to work. strcpy(playerData.current->actionname, statusModule->getStatusName(), PP_ACTION_NAME_LEN);
-        playerData.current->action = statusModule->action;
-        if (statusModule->attackHasConnected) {
+        playerData.current->action = statusModule->getStatusKind();
+        if (statusModule->isCollisionAttackOccer()) {
             playerData.didConnectAttack = true;
         }
     }
 
     /* hitstun/shieldstun stuff comes from the work module. */
-    if (workModule != nullptr) {
+    if (workModule != NULL) {
         // OSReport("Work module vals for player %d:\n", player);
         // debugWorkModule(*workModule);
-        auto RABasicsArr = (*(int(*)[workModule->RAVariables->basicsSize])workModule->RAVariables->basics);
-        auto RAFloatArr = (*(int(*)[workModule->RAVariables->floatsSize])workModule->RAVariables->floats);
-        auto RABoolArr = (*(u32 (*)[workModule->RAVariables->bitsSize])workModule->RAVariables->bitVariables);
-        auto LABasicsArr = (*(int(*)[workModule->LAVariables->basicsSize])workModule->LAVariables->basics);
-        auto LAFloatArr = (*(float(*)[workModule->LAVariables->floatsSize])workModule->LAVariables->floats);
-        auto LABoolArr = (*(u32 (*)[workModule->LAVariables->bitsSize])workModule->LAVariables->bitVariables);
+        soGeneralWorkSimple& raVars = *getWorkVars(*fighter, RA_VARS);
+        soGeneralWorkSimple& laVars = *getWorkVars(*fighter, LA_VARS);
+        const int *RABasicsArr = raVars.m_intWorks;
+        const float* RAFloatArr = raVars.m_floatWorks;
+        const u32* RABoolArr = raVars.m_flagWorks;
+
+        const int* LABasicsArr = laVars.m_intWorks;
+        const float* LAFloatArr = laVars.m_floatWorks;
+        const u32* LABoolArr = laVars.m_flagWorks;
 
         // float shieldValue = LAFloatArr[0x3];
 
@@ -367,13 +389,14 @@ void gatherData(u8 player) {
 
 
     /* subaction stuff */
-    if (motionModule != nullptr) {
-        soAnimChr animationData = motionModule->mainAnimationData;
-        playerData.current->subaction = motionModule->subAction;
-        if (animationData.resPtr != nullptr) {
-            auto animationResource = animationData.resPtr->CHR0Ptr;
+    if (motionModule != NULL) {
+        // TODO: Find a fn that returns this.
+        soAnimChr animationData = motionModule->m_mainAnim;
+        playerData.current->subaction = motionModule->getKind();
+        if (animationData.m_anmChrRes != NULL) {
+            nw4r::g3d::CHR0* animationResource = animationData.m_anmChrRes->m_anmChrFile;
             // OSReport("Animation Resource: 0x%X\n", animationResource);
-            if (animationResource == nullptr) {
+            if (animationResource == NULL) {
                 strncpy(playerData.current->subactionName, "UNKNOWN", PP_ACTION_NAME_LEN);
                 playerData.current->actionTotalFrames = -1;
             } else {
@@ -381,16 +404,16 @@ void gatherData(u8 player) {
 
                 // do these ever differ, except by 1?
                 playerData.current->subactionTotalFrames = motionModule->getEndFrame();
-                playerData.current->actionTotalFrames = animationResource->animLength;
+                playerData.current->actionTotalFrames = animationResource->m_animLength;
 
-                strncpy(playerData.current->subactionName, animationResource->getString(), PP_ACTION_NAME_LEN);
+                strncpy(playerData.current->subactionName, motionModule->getName(), PP_ACTION_NAME_LEN);
             }
 
-            playerData.current->actionFrame = (u32)animationData.animFrame;
+            playerData.current->actionFrame = (u32)animationData.m_animFrame;
         }
 
     }
-    if (cancelModule != nullptr) {
+    if (cancelModule != NULL) {
         u32 isEnableCancel = cancelModule->isEnableCancel();
         // TODO: investigate cancel groups here.
         currentData.canCancel = (bool)isEnableCancel;
@@ -406,7 +429,7 @@ void resolveAttackTarget(u8 playerIdx) {
                 continue;
             }
 
-            auto& otherPlayer = allPlayerData[otherIdx];
+            PlayerData& otherPlayer = allPlayerData[otherIdx];
             if (player.showOnHitAdvantage && otherPlayer.didReceiveHitstun()) {
                 player.resetTargeting();
                 otherPlayer.resetTargeting();
@@ -435,7 +458,7 @@ void checkAttackTargetActionable(u8 playerNum) {
     PlayerData& player = allPlayerData[playerNum];
 
     // Player is attacking someone.
-    if (player.attackTarget != nullptr){
+    if (player.attackTarget != NULL){
         PlayerData& target = *(player.attackTarget);
 
         bool targetIsActionable = target.resolveTargetActionable();
@@ -456,7 +479,7 @@ void checkAttackTargetActionable(u8 playerNum) {
                     Popup& popup = *(new Popup(strManipBuffer));
                     popup.coords = getHpPopupBoxCoords(player.playerNumber);
                     popup.durationSecs = 3;
-                    playerPopups[player.playerNumber].append(popup);
+                    addPopup(player.playerNumber, popup);
                 }
             }
 
@@ -466,95 +489,4 @@ void checkAttackTargetActionable(u8 playerNum) {
     }
 }
 
-
-//hacky way to check if in game
-SCENE_TYPE getScene() {
-    u32* ptr = (u32*) (0x805b4fd8 + 0xd4);
-    ptr = (u32*) *ptr;
-    if(ptr < (u32*)0xA0000000) {
-        ptr = (u32*) *(ptr + (0x10 / 4));
-        if(ptr != nullptr) {
-            u32 scene = *(ptr + (8 / 4));
-            return (SCENE_TYPE)scene;
-        }
-    }
-    return SCENE_TYPE::UNKNOWN;
-}
-
-#define P1_2P_COORDS Coord2D{.x = 200, .y = 350}
-#define P2_2P_COORDS Coord2D{.x = 355, .y = 350}
-#define P1_4P_COORDS Coord2D{.x = 50, .y = 350}
-#define P2_4P_COORDS Coord2D{.x = 200, .y = 350}
-#define P3_4P_COORDS Coord2D{.x = 350, .y = 350}
-#define P4_4P_COORDS Coord2D{.x = 500, .y = 350}
-Coord2D getHpPopupBoxCoords(int playerNum) {
-    SCENE_TYPE scene = getScene();
-    char totalPlayers;
-
-    // I don't know why training mode has the player numbers
-    // backwards. :(
-    if (scene == TRAINING_MODE_MMS) {
-        totalPlayers = 4;
-        switch(playerNum){
-        case 0:
-            return P2_4P_COORDS;
-        case 1:
-            return P1_4P_COORDS;
-        default:
-            return Coord2D{};
-        }
-    }
-
-    totalPlayers = FIGHTER_MANAGER->getEntryCount();
-
-    if (totalPlayers == 2) {
-        switch(playerNum) {
-            case 0:
-                return P1_2P_COORDS;
-            case 1:
-                return P2_2P_COORDS;
-            default:
-                return Coord2D{};
-        }
-    }
-    if (totalPlayers == 4) {
-        switch(playerNum) {
-            case 0:
-                return P1_4P_COORDS;
-            case 1:
-                return P2_4P_COORDS;
-            case 2:
-                return P3_4P_COORDS;
-            case 3:
-                return P4_4P_COORDS;
-            default:
-                return Coord2D {};
-        }
-    }
-
-    // TODO: Other numbers of players.
-
-    return Coord2D{};
-}
-
-void drawAllPopups() {
-    for(int i = 0; i < PP_MAX_PLAYERS; i++) {
-        auto itr = LinkedlistIterator(playerPopups[i]);
-        Popup* popup;
-        Coord2D coords = getHpPopupBoxCoords(i);
-
-
-        while ((popup = itr.next()) != nullptr) {
-            if (popup->expired()) {
-                itr.deleteHere();
-                delete popup;
-            } else {
-                popup->coords = coords;
-                // OSReport("Set popup coords to %d,%d\n", coords.x, coords.y);
-                popup->draw(printer);
-
-                coords.y -= PP_POPUP_VERTICAL_OFFSET;
-            }
-        }
-    }
-}
+} // namespace

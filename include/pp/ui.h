@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include "pp/input/pad.h"
 #include "pp/menu.h"
 #include "pp/common.h"
@@ -55,7 +56,7 @@ class PpunchMenu : public Menu {
         void init();
         void cleanup();
         void handleInput();
-        void render(TextPrinter& printer, char* buffer, u32 maxLen);
+        virtual void render(TextPrinter& printer, char* buffer, u32 maxLen);
         void drawBg(TextPrinter& printer);
         void drawOutline(TextPrinter& printer);
         void drawHighlightBox();
@@ -152,7 +153,10 @@ public:
 };
 #pragma endregion
 
-extern linkedlist<Popup> playerPopups[PP_MAX_PLAYERS];
+Coord2D getHpPopupBoxCoords(int playerNum);
+void drawAllPopups();
+void addPopup(int playerNum, Popup& popup);
+
 extern PpunchMenu& punchMenu;
 
 } // namespace

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <OS/OSError.h>
+#include <stdio.h>
+
 #include "pp/playerdata.h"
 #include "pp/fighter_names.h"
 

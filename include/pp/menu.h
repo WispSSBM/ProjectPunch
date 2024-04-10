@@ -34,6 +34,8 @@ struct OptionType {
     void rawRender(TextPrinter* printer, const char* buffer);
 
     OptionType() {
+        name = "";
+        parent = NULL;
         subParent = NULL;
         isSelected = false;
         canModify = true;
@@ -52,29 +54,39 @@ struct OptionType {
 struct StandardOption : public OptionType {
     virtual void up() { };
     virtual void down() { };
-    virtual void setParentPage(Page* p) { this->parent = p; }
+    virtual void setParentPage(Page* p) { 
+        OSReport("StandardOption setParentPage() this = 0x%0X\n", this);
+        this->parent = p; 
+    }
     virtual ~StandardOption() {}
 };
 
 struct Page {
     Page(Menu* myMenu) :
-        menu(myMenu) {};
+        menu(myMenu), options(*new vector()) {
+            currentOption = 0;
+            isSelected = false;
+            highlightedOptionBottom = 0.f;
+            highlightedOptionTop = 0.f;
+            strcpy("generic page", title);
+        };
     void addOption(OptionType* option);
     void hide();
     void up();
     void down();
     void modify(float amount);
-    void render(TextPrinter* printer, char* buffer);
+    virtual void render(TextPrinter* printer, char* buffer);
     void saveHighlightRegion(TextPrinter* printer) {
         highlightedOptionTop = printer->charWriter->GetCursorY();
         highlightedOptionBottom = printer->charWriter->GetCursorY() + printer->lineHeight;
     };
+    OptionType* getCurrentOption();
     virtual void show();
     virtual void select();
     virtual void deselect();
-    virtual bool isFullySelected() { return options[currentOption]->isFullySelected(); };
+    virtual bool isFullySelected() { return reinterpret_cast<OptionType*>(options[currentOption])->isFullySelected(); };
     virtual const char* getTitle();
-    Page() {
+    Page(): options(*new vector()) {
         currentOption = 0;
         isSelected = false;
         highlightedOptionBottom = 0.f;
@@ -83,7 +95,7 @@ struct Page {
     }
     virtual ~Page() {}
 
-    vector<OptionType*> options;
+    vector& options;
     char currentOption;
     bool isSelected;
     float highlightedOptionTop;
@@ -117,19 +129,19 @@ public:
     void prevPage();
     void addPage(Page* p);
     Page* getCurrentPage();
-    void select();
-    void deselect();
-    void up();
-    void down();
-    void modify(float amount);
-    void render(TextPrinter* printer, char* buffer);
-    void unpause();
-    void toggle();
+    virtual void select();
+    virtual void deselect();
+    virtual void up();
+    virtual void down();
+    virtual void modify(float amount);
+    virtual void render(TextPrinter* printer, char* buffer);
+    virtual void unpause();
+    virtual void toggle();
 
     bool visible;
     bool paused;
     bool selected;
-    vector<Page*> pages;
+    vector pages;
 
     u8 opacity;
     Color highlightedColor;
@@ -358,22 +370,22 @@ private:
 
 class SubpageOption : public OptionType {
 public:
-    SubpageOption(const char* name): currentOption(_index) {
+    SubpageOption(const char* name): currentOption(_index), options(*new vector()) {
         setDefaults();
         this->name = name;
     }
-    SubpageOption(const char* name, int height, int depth): currentOption(_index) {
+    SubpageOption(const char* name, int height, int depth): currentOption(_index), options(*new vector()) {
         setDefaults();
         this->name = name;
         this->height = height;
         this->depth = depth;
     }
-    SubpageOption(const char* name, bool collapsible): currentOption(_index) {
+    SubpageOption(const char* name, bool collapsible): currentOption(_index), options(*new vector()) {
         setDefaults();
         this->name = name;
         this->collapsible = collapsible;
     }
-    SubpageOption(const char* name, int height, int depth, bool collapsible): currentOption(_index) {
+    SubpageOption(const char* name, int height, int depth, bool collapsible): currentOption(_index), options(*new vector()) {
         setDefaults();
         this->name = name;
         this->height = height;
@@ -394,7 +406,7 @@ public:
     bool hasCurrentOption() { 
       return !((currentOption < 0) || (currentOption >= (int)options.size())); 
     };
-    OptionType& currentOptionRef() {return *options[currentOption]; }
+    OptionType& currentOptionRef() {return *reinterpret_cast<OptionType*>(options[currentOption]); }
 
     void addOption(OptionType* option);
     void clearOptions();
@@ -402,10 +414,15 @@ public:
     int getOptionCount();
 
     virtual ~SubpageOption() {
+        for (int i = 0; i < options.size(); i++) {
+            delete reinterpret_cast<OptionType*>(options[i]);
+        }
+
         options.clear();
+        delete &options;
     }
 
-    vector<OptionType*> options;
+    vector& options;
     int& currentOption;
     int _index;
     char indent;
@@ -419,7 +436,6 @@ public:
     bool terminal;
 private:
     void setDefaults() {
-        options = vector<OptionType*>();
         _index = -1;
         indent = 16;
         scrollIdx = 0;

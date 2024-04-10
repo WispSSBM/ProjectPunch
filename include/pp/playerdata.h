@@ -33,7 +33,7 @@ struct PlayerDataOnFrame {
         didConnectAttack = false;
     };
 
-    u32 action;
+    int action;
     u32 subaction;
     char subactionName[PP_ACTION_NAME_LEN];
     float subactionFrame;

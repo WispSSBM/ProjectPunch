@@ -48,6 +48,4 @@ class PopupConfig {
 };
 
 extern PopupConfig gPopupConfig;
-void drawAllPopups(Collections::vector<Popup*>& popups, Graphics::TextPrinter& printer, u32 currentFrame);
-
 } // namespace

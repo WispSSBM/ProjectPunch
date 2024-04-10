@@ -1,5 +1,6 @@
 // Wanton hoist of fudgepop's menu for my own purposes/modification
 
+#include <stdio.h>
 #include "pp/menu.h"
 #include "pp/common.h"
 #include "pp/graphics/drawable.h"
@@ -11,44 +12,53 @@ namespace ProjectPunch {
 #pragma region Page
 void Page::addOption(OptionType* option) {
     option->setParentPage(this);
-    options.push(option);
+    options.push(dynamic_cast<OptionType*>(option));
 }
 
 void Page::deselect() {
     if (isSelected) {
-        options[currentOption]->deselect();
-        isSelected = options[currentOption]->isSelected;
+        getCurrentOption()->deselect();
+        isSelected = getCurrentOption()->isSelected;
     }
+}
+
+OptionType* Page::getCurrentOption() {
+    return reinterpret_cast<OptionType*>(options[currentOption]);
 }
 
 void Page::select() {
-    options[currentOption]->select();
-    isSelected = options[currentOption]->isSelected;
+    if (options.size() == 0) { return; }
+
+    getCurrentOption()->select();
+    isSelected = getCurrentOption()->isSelected;
 }
 
 void Page::up() {
-    if (isSelected) options[currentOption]->up();
+    if (options.size() == 0) { return; }
+    if (isSelected) getCurrentOption()->up();
     else if (currentOption > 0) {
         char start = currentOption;
-        for (char i = --currentOption; i > 0 && !options[i]->canModify; i--) {
+        for (char i = --currentOption; i > 0 && !reinterpret_cast<OptionType*>(options[i])->canModify; i--) {
             currentOption--;
         }
-        if (!options[currentOption]->canModify) currentOption = start;
+        if (!getCurrentOption()->canModify) currentOption = start;
     }
 }
 void Page::down() {
-    if (isSelected) options[currentOption]->down();
+    if (options.size() == 0) { return; }
+    if (isSelected) getCurrentOption()->down();
     else if (currentOption < options.size() - 1) {
         char start = currentOption;
         char size = options.size();
-        for (char i = ++currentOption; i < (size - 1) && !options[i]->canModify; i++) {
+        for (char i = ++currentOption; i < (size - 1) && !reinterpret_cast<OptionType*>(options[i])->canModify; i++) {
             currentOption++;
         }
-        if (!options[currentOption]->canModify) currentOption = start;
+        if (!getCurrentOption()->canModify) currentOption = start;
     }
 }
 
 void Page::modify(float amount) {
+    if (options.size() == 0) { return; }
     if (!isSelected) {
         if (amount >= 0) {
             up();
@@ -58,21 +68,24 @@ void Page::modify(float amount) {
         return;
     }
     
-    options[currentOption]->modify(amount);
+    getCurrentOption()->modify(amount);
 }
 
 void Page::render(TextPrinter* printer, char* buffer) {
     Menu& m = *menu;
     char len = options.size();
 
+    OSReport("Page @ 0x%0x render(), %d options.\n", this, len);
     for (char i = 0; i < len; i++) {
+        OptionType* option = reinterpret_cast<OptionType*>(options[i]);
+
         // For complex options, defer.
-        if (!options[i]->terminal) {
-            options[i]->render(printer, buffer);
+        if (!option->terminal) {
+            option->render(printer, buffer);
             return;
         }
 
-        if (!options[i]->canModify) printer->setTextColor(applyAlpha(m.readOnlyColor, m.opacity));
+        if (!option->canModify) printer->setTextColor(applyAlpha(m.readOnlyColor, m.opacity));
         else if (i == currentOption && isSelected && menu->paused) {
             saveHighlightRegion(printer);
             printer->setTextColor(applyAlpha(m.selectedColor, m.opacity));
@@ -86,7 +99,8 @@ void Page::render(TextPrinter* printer, char* buffer) {
         }
         printer->padToWidth(RENDER_X_SPACING / 5);
 
-        options[i]->render(printer, buffer);
+        OSReport("Rendering option %d @ 0x%0x\n", i, option);
+        option->render(printer, buffer);
     }
 }
 
@@ -115,7 +129,7 @@ void Menu::prevPage() {
 
 Page* Menu::getCurrentPage() {
     if (pages.size() == 0) { return NULL; }
-    return pages[currentPageIdx];
+    return reinterpret_cast<Page*>(pages[currentPageIdx]);
 }
 
 void Menu::select() { 
@@ -302,8 +316,8 @@ void SubpageOption::modify(float amount) {
     }
 
     /* safeguard */
-    if (options[currentOption]->canModify) {
-        options[currentOption]->modify(amount);
+    if (currentOptionRef().canModify) {
+        currentOptionRef().modify(amount);
     }
 }
 
@@ -334,7 +348,7 @@ void SubpageOption::up() {
     int start = currentOption;
     for (int i = --start; i >= 0; i--) {
         // Go to next 
-        if (options[i]->canModify) {
+        if (reinterpret_cast<OptionType*>(options[i])->canModify) {
             currentOption = i;
             hasFoundOpt = true;
             break;
@@ -370,7 +384,7 @@ void SubpageOption::down() {
     int start = currentOption;
     bool foundOption = false;
     for (int i = ++start; i < (int)options.size(); i++) {
-        if (options[i]->canModify) {
+        if (reinterpret_cast<OptionType*>(options[i])->canModify) {
             currentOption = i;
             foundOption = true;
             break;
@@ -402,13 +416,13 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
         for (int i = 0; i < options.size(); i++) {
             oldXPos = printer->charWriter->GetCursorX();
             printer->charWriter->m_xPos += (indent + ((indent * (depth + 1))));
-            if (!options[i]->terminal) {
-                options[i]->render(printer, buffer);
+            if (!reinterpret_cast<OptionType*>(options[i])->terminal) {
+                reinterpret_cast<OptionType*>(options[i])->render(printer, buffer);
                 continue;
             }
 
 
-            if (!options[i]->canModify) {
+            if (!reinterpret_cast<OptionType*>(options[i])->canModify) {
                 printer->setTextColor(applyAlpha(m.readOnlyColor, m.opacity));
             } else if (i == currentOption && hasSelection && m.paused) {
                 parent->saveHighlightRegion(printer);
@@ -420,7 +434,7 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
                 printer->setTextColor(applyAlpha(m.defaultColor, m.opacity));
             }
 
-            options[i]->render(printer, buffer);
+            reinterpret_cast<OptionType*>(options[i])->render(printer, buffer);
             printer->charWriter->SetCursorX(oldXPos);
         }
     }
@@ -429,7 +443,7 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
 void SubpageOption::addOption(OptionType* option) {
     option->parent = this->parent;
     option->subParent = this;
-    options.push(option);
+    options.push(reinterpret_cast<void*>(option));
 
     if (option->canModify) {
         modifiableChildren++;
@@ -448,7 +462,11 @@ bool SubpageOption::isFullySelected() {
 void SubpageOption::setParentPage(Page* p) {
     this->parent = p;
     int len = options.size();
-    for (int i = 0; i < len; i++) options[i]->setParentPage(p);
+    for (int i = 0; i < len; i++) { 
+        OptionType* option = reinterpret_cast<OptionType*>(options[i]);
+        OSReport ("Subpage option setting option %d @ (0x%0X) to have parent page 0x%0X\n", i, option, p);
+        option->setParentPage(p); 
+    };
 }
 
 void SubpageOption::clearOptions() {

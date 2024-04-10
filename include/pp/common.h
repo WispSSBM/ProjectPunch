@@ -16,9 +16,8 @@
 #define PP_POPUP_VERTICAL_OFFSET 50
 #define PP_MAX_PLAYERS 4
 
-#define OSReport ((void (*)(const char* text, ...)) 0x801d8600)
-#define sprintf ((int (*)(char* buffer, const char* format, ...)) 0x803f89fc)
-#define snprintf ((int (*)(char* buffer, size_t maxSize, const char* format, ...)) 0x803f8924)
+#define WORK_MODULE_RA_VARS 1
+#define WORK_MODULE_LA_VARS 0
 
 #define RA_BIT_ENABLE_ACTION_TRANSITION 0x10
 
@@ -42,7 +41,11 @@ namespace ProjectPunch {
             y = 0;
         }
 
-        Coord2DF(int x, int y) {this->x = x; this -> y = y;}
+        Coord2DF(float x, float y) {
+            this->x = x;
+            this -> y = y;
+        }
+
         float x;
         float y;
     } Coord2DF;
@@ -83,11 +86,16 @@ namespace ProjectPunch {
         UNKNOWN=0xFF
     };
 
+    enum WorkModuleVarType {
+        LA_VARS = 0,
+        RA_VARS = 1
+    };
+
     extern u32 frameCounter;
     extern char strManipBuffer[PP_STR_MANIP_SIZE];
 
     int max(int a, int b);
     float fmax(float a, float b);
     Color applyAlpha(Color input, u8 alpha);
-
+    SCENE_TYPE getScene();
 }
