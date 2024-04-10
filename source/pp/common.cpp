@@ -7,8 +7,9 @@
 namespace ProjectPunch {
 u32 frameCounter = 0;
 char strManipBuffer[PP_STR_MANIP_SIZE] = {};
-const Color& PP_COLOR_BLACK = 0x000000FFu;
-const Color& PP_COLOR_WHITE = 0xFFFFFFFFu;
+const Color& COLOR_BLACK = 0x000000FFu;
+const Color& COLOR_WHITE = 0xFFFFFFFFu;
+const Color& COLOR_TRANSPARENT_GREY = 0x000000DD;
 
 /******/
 

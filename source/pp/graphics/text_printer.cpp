@@ -54,7 +54,11 @@ TextPrinter printer;
 
 //Must be called before doing anything after graphics settings were
 //modified. Otherwise the game will likely hang and crash.
-void TextPrinter::setup(bool is2D = true) {
+void TextPrinter::setup() {
+    this->setup(true);
+}
+
+void TextPrinter::setup(bool is2D) {
     // This is always loaded, but should work out how to do font loading without 
     // randomly assigning memory addresses.
     charWriter->m_font = MELEE_FONT;
@@ -120,7 +124,7 @@ void TextPrinter::startBoundingBox() {
 }
 
 void TextPrinter::saveBoundingBox(Color color, float boxPadding) {
-    saveBoundingBox(color, PP_COLOR_BLACK, PP_COLOR_BLACK, 0, boxPadding);
+    saveBoundingBox(color, COLOR_BLACK, COLOR_BLACK, 0, boxPadding);
 }
 
 void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highlightColor, int outlineWidth, float boxPadding) {

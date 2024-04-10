@@ -7,8 +7,6 @@
 /* Static value defines */
 
 #define PP_STR_MANIP_SIZE 512
-#define COLOR_TRANSPARENT_GREY ((GXColor)0x000000DD)
-#define COLOR_WHITE ((GXColor)0xFFFFFFFF)
 #define PP_ACTION_NAME_LEN 64 
 #define PP_FONT_SCALE_INC 0.1
 #define PP_DEFAULT_MSG_X_POS 100
@@ -53,10 +51,18 @@ namespace ProjectPunch {
         u32 value;
         nw4r::ut::Color utColor;
         GXColor gxColor;
+        struct {
+            u8 r;
+            u8 g;
+            u8 b;
+            u8 a;
+        };
     } Color;
 
-    extern const Color& PP_COLOR_BLACK;
-    extern const Color& PP_COLOR_WHITE;
+    extern const Color& COLOR_BLACK;
+    extern const Color& COLOR_WHITE;
+    extern const Color& COLOR_TRANSPARENT_GREY;
+
 
     #define SC_SEL_CHAR "scSelChar"
     #define SC_MELEE "scMelee"

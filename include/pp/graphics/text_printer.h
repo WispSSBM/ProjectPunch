@@ -32,6 +32,7 @@ struct TextPrinter {
     void saveBoundingBox(Color color, float boxPadding = 0);
     void saveBoundingBox(Color color, Color outlineColor, Color highlightColor, int outlineWidth, float boxPadding = 0);
     void setTextColor(Color color);
+    void setup();
     void setup(bool is2D);
 
     ms::CharWriter* charWriter;

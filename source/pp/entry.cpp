@@ -11,12 +11,14 @@
 #include "pp/graphics/text_printer.h"
 #include "pp/graphics/draw.h"
 #include "pp/graphics/drawable.h"
+#include "pp/popup.h"
 
 namespace ProjectPunch {
 namespace Entry {
 
 bool initialized = false;
 Graphics::TextPrinter printer = Graphics::TextPrinter();
+ProjectPunch::Popup* popup = 0;
 
 void Init() {
     // 0x800177B0
@@ -28,15 +30,21 @@ void Destroy() {
 }
 
 void helloWorld() {
+    frameCounter += 1;
     Graphics::renderables.renderPre();
-
-    if (!initialized) {
-        OSReport("Hello world.\n");
-        Collections::testLinkedList();
-        initialized = true;
-    }
     gfScene& scene = *gfSceneManager::getInstance()->m_currentScene;
     if (strcmp("scCharSel", scene.m_sceneName)) {
+
+        if (!initialized) {
+            OSReport("Hello world.\n");
+            Collections::testLinkedList();
+            initialized = true;
+
+            popup = new ProjectPunch::Popup("Hello world.\n");
+            popup->coords.x = 100;
+            popup->coords.y = 100;
+        }
+
 
         /* Test out printing stuff. */
         printer.setup(true);
@@ -48,12 +56,12 @@ void helloWorld() {
 
         printer.startBoundingBox();
         printer.print("Hello world.\n");
-        printer.saveBoundingBox(PP_COLOR_BLACK, 0x888888FF, PP_COLOR_WHITE, 6, 5);
+        printer.saveBoundingBox(COLOR_BLACK, 0x888888FF, COLOR_WHITE, 6, 5);
 
         /* Test out drawing a rect. */
         Graphics::renderables.items.frame.push(
             new Graphics::Rect(
-                100.f,
+                300.f,
                 100.f,
                 100.f,
                 50.f,
@@ -62,6 +70,15 @@ void helloWorld() {
             )
         );
 
+        if (popup != 0) {
+            if (popup->expired()) {
+                delete popup;
+                popup = 0;
+            } else {
+                OSReport("Drawing popup...");
+                popup->draw(printer);
+            }
+        }
     }
 
     Graphics::renderables.renderAll();
