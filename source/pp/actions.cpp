@@ -1,8 +1,10 @@
-#include "actions.h"
+#include "pp/actions.h"
 
-
-bool isAttackingAction(u16 action) {
-    if (action >= ACTION_JAB && action <= ACTION_AERIALATTACK) {
+namespace ProjectPunch {
+bool isAttackingAction(u16 action)
+{
+    if (action >= ACTION_JAB && action <= ACTION_AERIALATTACK)
+    {
         /*
            Covers the following:
             JAB 0X24
@@ -24,7 +26,8 @@ bool isAttackingAction(u16 action) {
         */
         return true;
     }
-    if (action >= ACTION_SPECIALN && action <= ACTION_SPECIALLW) {
+    if (action >= ACTION_SPECIALN && action <= ACTION_SPECIALLW)
+    {
         /*
           Covers:
            SPECIALN 0X112
@@ -34,8 +37,9 @@ bool isAttackingAction(u16 action) {
         */
         return true;
     }
-    
-    if (action >= ACTION_NEUTRALSWINGITEM and action <= ACTION_DASHSWINGITEM) {
+
+    if (action >= ACTION_NEUTRALSWINGITEM and action <= ACTION_DASHSWINGITEM)
+    {
         /*
           Covers:
            NEUTRALSWINGITEM 0X9E
@@ -48,7 +52,8 @@ bool isAttackingAction(u16 action) {
         return true;
     }
 
-    switch (action) {
+    switch (action)
+    {
     case ACTION_FIRETETHER:
         return true;
     case ACTION_CATCHATTACK:
@@ -61,17 +66,17 @@ bool isAttackingAction(u16 action) {
 }
 
 bool isDefinitelyActionable(u16 action) {
-    switch(action) {
-        case ACTION_WAIT:
-        case ACTION_DASH:
-        case ACTION_GUARD:
-        case ACTION_GUARDOFF:
-        case ACTION_GUARDON:
-        case ACTION_SQUAT:
-        case ACTION_SQUATWAIT:
-        case ACTION_FALL:
-        case ACTION_JUMPSQUAT:
-            return true;
+    switch (action) {
+    case ACTION_WAIT:;
+    case ACTION_DASH:;
+    case ACTION_GUARD:;
+    case ACTION_GUARDOFF:;
+    case ACTION_GUARDON:;
+    case ACTION_SQUAT:;
+    case ACTION_SQUATWAIT:;
+    case ACTION_FALL:;
+    case ACTION_JUMPSQUAT:
+        return true;
     }
 
     return false;
@@ -480,20 +485,20 @@ const char* actionName(u16 action) {
     }
 }
 
-bool isEATBitExclusion(CHAR_ID charKind, int actionId){
-    switch(charKind) {
-        case (CHAR_ID::Szerosuit):
-            switch(actionId) {
-                // 117 and 118 are her uncharged/charged shot release actions.
-                // They have action transition enabled the whole time, but she's not actionable.
-                case ACTION_SPECIALN:
-                case 0x117:
-                case 0x118:
-                    return true;
-                default:
-                    return false;
-            }
+bool isEATBitExclusion(ftKind charKind, int actionId) {
+    if (charKind == Fighter_ZeroSuitSamus) {
+        switch (actionId) {
+            // 117 and 118 are her uncharged/charged shot release actions.
+            // They have action transition enabled the whole time, but she's not actionable.
+        case ACTION_SPECIALN:;
+        case 0x117:;
+        case 0x118:;
+            return true;
         default:
             return false;
+        };
+    } else {
+        return false;
     }
+}
 }

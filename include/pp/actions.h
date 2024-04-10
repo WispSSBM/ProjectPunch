@@ -1,8 +1,7 @@
-#ifndef PP_ACTIONS
-#define PP_ACTIONS
+#pragma once
 
-#include "stddef.h"
-#include <Brawl/FT/Fighter.h>
+#include <stl/cstddef>
+#include <ft/fighter.h>
 
 #pragma region
 #define ACTION_WAIT 0X0
@@ -206,9 +205,9 @@
 #define ACTION_FUWAFUWA 0x11E
 #pragma endregion
 
-bool isEATBitExclusion(CHAR_ID charKind, int actionId);
-bool isAttackingAction(u16 action);
-bool isDefinitelyActionable(u16 action);
-const char* actionName(u16 action);
-
-#endif
+namespace ProjectPunch {
+    bool isEATBitExclusion(ftKind charKind, int actionId);
+    bool isAttackingAction(u16 action);
+    bool isDefinitelyActionable(u16 action);
+    const char* actionName(u16 action);
+}

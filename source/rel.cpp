@@ -2,11 +2,11 @@
 #include <gf/gf_memory_pool.h>
 #include <sy_core.h>
 
-#include "projectPunch.h"
+#include "pp/entry.h"
 
 namespace Syringe {
 
-    extern "C" {
+extern "C" {
     typedef void (*PFN_voidfunc)();
     __attribute__((section(".ctors"))) extern PFN_voidfunc _ctors[];
     __attribute__((section(".ctors"))) extern PFN_voidfunc _dtors[];
@@ -14,34 +14,34 @@ namespace Syringe {
     void _prolog();
     void _epilog();
     void _unresolved();
-    }
+}
 
-    void _prolog()
+void _prolog()
+{
+    // Run global constructors
+    PFN_voidfunc* ctor;
+    for (ctor = _ctors; *ctor; ctor++)
     {
-        // Run global constructors
-        PFN_voidfunc* ctor;
-        for (ctor = _ctors; *ctor; ctor++)
-        {
-            (*ctor)();
-        }
-
-        ProjectPunch::Init();
+        (*ctor)();
     }
 
-    void _epilog()
+    ProjectPunch::Entry::Init();
+}
+
+void _epilog()
+{
+    // run the global destructors
+    PFN_voidfunc* dtor;
+    for (dtor = _dtors; *dtor; dtor++)
     {
-        // run the global destructors
-        PFN_voidfunc* dtor;
-        for (dtor = _dtors; *dtor; dtor++)
-        {
-            (*dtor)();
-        }
-		
-		ProjectPunch::Destroy();
+        (*dtor)();
     }
 
-    void _unresolved(void)
-    {
-    }
+    ProjectPunch::Entry::Destroy();
+}
+
+void _unresolved(void)
+{
+}
 
 }
