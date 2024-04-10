@@ -1,7 +1,9 @@
 #include <os/OSError.h>
 
-#include "pp/linkedlist.h"
+#include "pp/collections/linkedlist.h"
 
+namespace ProjectPunch {
+namespace Collections {
 void testLinkedList() {
     linkedlist<int>* ll = new linkedlist<int>();
 
@@ -41,4 +43,6 @@ void testLinkedList() {
 
     delete ll;
     delete newInt;
+}
+}
 }

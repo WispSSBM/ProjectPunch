@@ -5,6 +5,9 @@
 
 #include <stl/cstddef>
 
+namespace ProjectPunch {
+namespace Collections {
+
 typedef struct listnode {
     listnode() {
         data = 0;
@@ -174,3 +177,5 @@ T* LinkedlistIterator<T>::next(){
 };
 
 void testLinkedList();
+
+}} // namespace

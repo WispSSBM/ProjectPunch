@@ -6,7 +6,7 @@
 
 namespace Syringe {
 
-extern "C" {
+    extern "C" {
     typedef void (*PFN_voidfunc)();
     __attribute__((section(".ctors"))) extern PFN_voidfunc _ctors[];
     __attribute__((section(".ctors"))) extern PFN_voidfunc _dtors[];
@@ -14,34 +14,34 @@ extern "C" {
     void _prolog();
     void _epilog();
     void _unresolved();
-}
-
-void _prolog()
-{
-    // Run global constructors
-    PFN_voidfunc* ctor;
-    for (ctor = _ctors; *ctor; ctor++)
-    {
-        (*ctor)();
     }
 
-    ProjectPunch::Entry::Init();
-}
-
-void _epilog()
-{
-    // run the global destructors
-    PFN_voidfunc* dtor;
-    for (dtor = _dtors; *dtor; dtor++)
+    void _prolog()
     {
-        (*dtor)();
+        // Run global constructors
+        PFN_voidfunc* ctor;
+        for (ctor = _ctors; *ctor; ctor++)
+        {
+            (*ctor)();
+        }
+
+        ProjectPunch::Entry::Init();
     }
 
-    ProjectPunch::Entry::Destroy();
-}
+    void _epilog()
+    {
+        // run the global destructors
+        PFN_voidfunc* dtor;
+        for (dtor = _dtors; *dtor; dtor++)
+        {
+            (*dtor)();
+        }
+		
+		ProjectPunch::Entry::Destroy();
+    }
 
-void _unresolved(void)
-{
-}
+    void _unresolved(void)
+    {
+    }
 
 }

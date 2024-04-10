@@ -33,7 +33,7 @@ endif
 TARGET		:=	ProjectPunch
 RELID		:= 	235
 BUILD		:=	build
-SOURCES		:=	source $(wildcard source/*) lib/BrawlHeaders/PowerPC_EABI_Support/Runtime/Src/ # have to hardcode lib dir here???????
+SOURCES		:=	source $(wildcard source/*) $(wildcard source/pp/*) $(wildcard source/pp/collections/*) $(wildcard source/pp/graphics/*) lib/BrawlHeaders/PowerPC_EABI_Support/Runtime/Src/ # have to hardcode lib dir here???????
 INCLUDES	:=	include
 
 #---------------------------------------------------------------------------------

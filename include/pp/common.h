@@ -2,6 +2,7 @@
 
 #include <types.h>
 #include <GX/GXTypes.h>
+#include <nw4r/ut/color.h>
 
 /* Static value defines */
 
@@ -43,6 +44,22 @@ namespace ProjectPunch {
         float x;
         float y;
     } Coord2DF;
+
+    typedef union Color {
+        Color(u32 val): value(val) {};
+        Color(nw4r::ut::Color utC): utColor(utC) {};
+        Color(GXColor gxC): gxColor(gxC) {};
+
+        u32 value;
+        nw4r::ut::Color utColor;
+        GXColor gxColor;
+    } Color;
+
+    extern const Color& PP_COLOR_BLACK;
+    extern const Color& PP_COLOR_WHITE;
+
+    #define SC_SEL_CHAR "scSelChar"
+    #define SC_MELEE "scMelee"
 
     enum SCENE_TYPE {
         MAIN_MENU = 0x1,
