@@ -1,11 +1,11 @@
-#ifndef PP_PLAYERDATA_H
-#define PP_PLAYERDATA_H
+#pragma once
 
-#include <CLibs/cstring.h>
-#include <Memory.h>
+#include <cstring>
 
-#include "actions.h"
-#include "common.h"
+#include "pp/actions.h"
+#include "pp/common.h"
+
+namespace ProjectPunch {
 
 bool startsWith(const char* testStr, const char* prefix);
 
@@ -18,22 +18,35 @@ struct PlayerDataOnFrame {
     PlayerDataOnFrame() {
         strncpy(subactionName, "UNKNOWN", PP_ACTION_NAME_LEN);
         OSReport("PlayerDataOnFrame ctor: this=0x%x\n", this);
+        action = 0;
+        subaction = 0;
+        subactionFrame = 0;
+        subactionTotalFrames = 0;
+
+        lowRABits = 0;
+        actionFrame = 0;
+        actionTotalFrames = 0;
+        hitstun = 0;
+        shieldstun = 0;
+
+        canCancel = false;
+        didConnectAttack = false;
     };
 
-    u32 action = 0;
-    u32 subaction = 0;
-    char subactionName[PP_ACTION_NAME_LEN] = {};
-    float subactionFrame = 0;
-    float subactionTotalFrames = 0;
+    u32 action;
+    u32 subaction;
+    char subactionName[PP_ACTION_NAME_LEN];
+    float subactionFrame;
+    float subactionTotalFrames;
 
-    u32 lowRABits = 0;
-    u16 actionFrame = 0;
-    u16 actionTotalFrames = 0;
-    u16 hitstun = 0;
-    u16 shieldstun = 0;
+    u32 lowRABits;
+    u16 actionFrame;
+    u16 actionTotalFrames;
+    u16 hitstun;
+    u16 shieldstun;
 
-    u32 canCancel: 1 = false;
-    u32 didConnectAttack: 1 = false;
+    u32 canCancel: 1;
+    u32 didConnectAttack: 1;
 
     bool getLowRABit(u32 idx) const;
     inline bool isShielding() const;
@@ -47,7 +60,7 @@ struct PlayerData {
         PlayerData() {
             maxHitstun = 0;
             maxShieldstun = 0;
-            attackTarget = nullptr;
+            attackTarget = NULL;
             becameActionableOnFrame = -1;
             lastAttackEndedOnFrame = -1;
             attackingAction = -1;
@@ -67,7 +80,7 @@ struct PlayerData {
         u16 maxHitstun;
         u16 maxShieldstun;
         u8 playerNumber;
-        CHAR_ID charId;
+        ftKind charId;
 
         /* Targeting bookkeeping */
         PlayerData* attackTarget;
@@ -182,4 +195,5 @@ inline void PlayerData::prepareNextFrame() {
 
 
 extern PlayerData* allPlayerData;
-#endif
+
+} // namespace

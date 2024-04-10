@@ -1,7 +1,11 @@
-#include "playerdata.h"
-#include "fighterNames.h"
+#pragma once
 
-extern unsigned int frameCounter;
+#include "pp/playerdata.h"
+#include "pp/fighter_names.h"
+
+namespace ProjectPunch {
+
+extern u32 frameCounter;
 PlayerData* allPlayerData = new PlayerData[PP_MAX_PLAYERS];
 
 
@@ -23,7 +27,7 @@ bool startsWith(const char* testStr, const char* prefix) {
 
 void PlayerData::resetTargeting() {
     attackingAction = -1;
-    attackTarget = nullptr;
+    attackTarget = NULL;
     becameActionableOnFrame = -1;
     advantageBonusCounter = 0;
     isAttackingShield = false;
@@ -58,7 +62,7 @@ bool PlayerDataOnFrame::getLowRABit(u32 idx) const {
 
 
 bool PlayerData::resolvePlayerActionable() {
-    auto& player = *this;
+    PlayerData& player = *this;
     if (player.becameActionableOnFrame != -1) {
         return true; // already became actionable..
     }
@@ -90,9 +94,9 @@ bool PlayerData::resolvePlayerActionable() {
 
 
 bool PlayerData::resolveTargetActionable() {
-    auto& target = *this;
+    PlayerData& target = *this;
 
-    if (target.becameActionableOnFrame != -1) {
+    if (target.becameActionableOnFrame != (u32)(-1)) {
         return true; // already happened.
     }
 
@@ -121,3 +125,5 @@ bool PlayerData::resolveTargetActionable() {
 
     return false;
 }
+
+} // namespace
