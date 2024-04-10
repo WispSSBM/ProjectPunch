@@ -21,7 +21,7 @@ struct TextPrinter {
         is2D = false;
         renderPre = false;
         bboxIdx = 0;
-        message = new ms::CharWriter();
+        charWriter = new ms::CharWriter();
     };
 
     void print(const char* characters);
@@ -34,7 +34,7 @@ struct TextPrinter {
     void setTextColor(Color color);
     void setup(bool is2D);
 
-    ms::CharWriter* message;
+    ms::CharWriter* charWriter;
     float lineHeight;
     float maxWidth;
     float lineStart;

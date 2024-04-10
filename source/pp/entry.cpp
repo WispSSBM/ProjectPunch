@@ -40,7 +40,7 @@ void helloWorld() {
 
         /* Test out printing stuff. */
         printer.setup(true);
-        ms::CharWriter& message = *(printer.message);
+        ms::CharWriter& message = *(printer.charWriter);
         message.SetCursor(200, 200, 0);
         message.SetScale(1.f);
         Color c = 0x00FFFFFF;

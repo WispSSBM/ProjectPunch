@@ -57,7 +57,7 @@ TextPrinter printer;
 void TextPrinter::setup(bool is2D = true) {
     // This is always loaded, but should work out how to do font loading without 
     // randomly assigning memory addresses.
-    message->font = MELEE_FONT;
+    charWriter->m_font = MELEE_FONT;
 
     //clear 2D flag
     this->is2D = is2D;
@@ -77,7 +77,7 @@ void TextPrinter::setup(bool is2D = true) {
     }
 
     startBoundingBox();
-    message->SetupGX();
+    charWriter->SetupGX();
     GXSetCullMode(GX_CULL_NONE);
 }
 
@@ -87,14 +87,7 @@ void TextPrinter::printLine(const char *chars) {
 }
 
 void TextPrinter::setTextColor(Color color) {
-    // Reinterpret GXColor -> nw4r::ut::Color
-    nw4r::ut::Color& c = color.utColor;
-
-    this->message->colorRect.topLeft = c; // top left 
-    this->message->colorRect.topRight = c;
-    this->message->colorRect.bottomLeft = c;
-    this->message->colorRect.bottomRight = c;
-    this->message->textColor = c;
+    charWriter->SetTextColor(color.utColor);
 }
 
 void TextPrinter::print(const char *chars) {
@@ -103,7 +96,7 @@ void TextPrinter::print(const char *chars) {
             newLine(true);
         }
         else {
-            message->Print(*chars); // implictly converts char byte to UTF16 unsigned short.
+            charWriter->Print(*chars); // implictly converts char byte to UTF16 unsigned short.
         }
     }
 }
@@ -111,18 +104,18 @@ void TextPrinter::print(const char *chars) {
 
 
 void TextPrinter::newLine(bool fromPrintFn) {
-    if (lineStart + maxWidth < message->xPos) {
-        maxWidth = message->xPos - lineStart;
+    if (lineStart + maxWidth < charWriter->m_xPos) {
+        maxWidth = charWriter->m_xPos - lineStart;
     }
-    message->xPos = lineStart;
+    charWriter->m_xPos = lineStart;
     lastPadLocation = lineStart;
-    message->yPos += (fromPrintFn && is2D) ? lineHeight : lineHeight;
+    charWriter->m_yPos += (fromPrintFn && is2D) ? lineHeight : lineHeight;
 }
 
 void TextPrinter::startBoundingBox() {
-    startY = message->yPos;
-    lineStart = message->xPos;
-    lastPadLocation = message->xPos;
+    startY = charWriter->m_yPos;
+    lineStart = charWriter->m_xPos;
+    lastPadLocation = charWriter->m_xPos;
     maxWidth = 0;
 }
 
@@ -131,8 +124,8 @@ void TextPrinter::saveBoundingBox(Color color, float boxPadding) {
 }
 
 void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highlightColor, int outlineWidth, float boxPadding) {
-    if (lineStart + maxWidth < message->xPos) {
-        maxWidth = message->xPos - lineStart;
+    if (lineStart + maxWidth < charWriter->m_xPos) {
+        maxWidth = charWriter->m_xPos - lineStart;
     }
 
     int multiplier = 1;// (is2D) ? 1 : -1;
@@ -141,7 +134,7 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
             1,
             bgColor.gxColor,
             (startY - boxPadding) * multiplier,
-            (message->yPos + lineHeight + boxPadding) * multiplier,
+            (charWriter->m_yPos + lineHeight + boxPadding) * multiplier,
             lineStart - boxPadding,
             lineStart + maxWidth + boxPadding,
             is2D
@@ -157,7 +150,7 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
             1,
             outlineColor.gxColor,
             (startY - boxPadding) * multiplier,
-            (message->yPos + lineHeight + boxPadding) * multiplier,
+            (charWriter->m_yPos + lineHeight + boxPadding) * multiplier,
             lineStart - boxPadding,
             lineStart + maxWidth + boxPadding,
             outlineWidth * 6,
@@ -169,7 +162,7 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
             1,
             highlightColor.gxColor,
             (startY - boxPadding) * multiplier,
-            (message->yPos + lineHeight + boxPadding) * multiplier,
+            (charWriter->m_yPos + lineHeight + boxPadding) * multiplier,
             lineStart - boxPadding,
             lineStart + maxWidth + boxPadding,
             (int)(((float)outlineWidth / 2.0f) * 6.0f),
@@ -186,12 +179,12 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
 void TextPrinter::padToWidth(float width) {
     float newLocation = width + lastPadLocation;
 
-    if (message->xPos < newLocation) {
-        message->xPos = newLocation;
+    if (charWriter->m_xPos < newLocation) {
+        charWriter->m_xPos = newLocation;
         lastPadLocation = newLocation;
     }
     else {
-        lastPadLocation = message->xPos;
+        lastPadLocation = charWriter->m_xPos;
     }
 }
 
