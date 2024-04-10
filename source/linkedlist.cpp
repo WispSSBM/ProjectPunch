@@ -17,11 +17,8 @@ void testLinkedList() {
 
     OSReport("Linked list test 1:\n");
     int* p;
-    p = itr.next();
-    while(p != 0){
-        OSReport(" - (ptr addr: 0x%X)\n", p);
+    while((p = itr.next()) != 0){
         OSReport(" - %d\n", *p);
-        p = itr.next();
     }
 
 

@@ -1,13 +1,17 @@
+#pragma once
 /* 
  * I can't believe I'm implementing a linked list 10 years after college data structures.
  */
 
-#ifndef LINKEDLIST_H
-#define LINKEDLIST_H
-
 #include <stl/cstddef>
 
 typedef struct listnode {
+    listnode() {
+        data = 0;
+        next = 0;
+        prev = 0;
+    };
+
     ~listnode(){};
     void* data;
     struct listnode* next;
@@ -170,4 +174,3 @@ T* LinkedlistIterator<T>::next(){
 };
 
 void testLinkedList();
-#endif

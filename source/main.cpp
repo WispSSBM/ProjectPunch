@@ -3,7 +3,7 @@
 #include <sy_core.h>
 
 #include "projectPunch.h"
-// #include "linkedlist.h"
+#include "linkedlist.h"
 
 namespace ProjectPunch {
     static bool initialized = false;
@@ -18,6 +18,10 @@ namespace ProjectPunch {
     }
 
     void helloWorld() {
-        OSReport("Hello world.\n");
+        if(!initialized) {
+            OSReport("Hello world.\n");
+            testLinkedList();
+            initialized = true;
+        }
     }
 }
