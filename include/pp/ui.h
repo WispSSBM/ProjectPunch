@@ -1,28 +1,27 @@
-#ifndef PP_UI
-#define PP_UI
+#pragma once
 
-#include "menu.h"
-#include "common.h"
-#include "linkedlist.h"
-#include "popup.h"
-#include "playerdata.h"
+#include "pp/input/pad.h"
+#include "pp/menu.h"
+#include "pp/common.h"
+#include "pp/collections/linkedlist.h"
+#include "pp/popup.h"
+#include "pp/playerdata.h"
 
-#include <Wii/PAD/PADButtons.h>
-#include <Wii/PAD/PADStatus.h>
+namespace ProjectPunch {
 
 #define PP_MENU_INPUT_SPEED 10
 class PpunchMenu : public Menu {
     public:
         PpunchMenu() {
-            pos = {100, 25};
-            size = {440, 350};
+            pos = Coord2D(100, 25);
+            size = Coord2D(440, 350);
 
             padding = 25;
             outlineWidth = 4;
             lineHeightMultiplier = 25;
 
-            baseFontScale = {0.5, 0.7};
-            titleBaseFontScale = {0.5, 1.0};
+            baseFontScale = Coord2DF(0.5, 0.7);
+            titleBaseFontScale = Coord2DF(0.5, 1.0);
             fontScaleMultiplier = 1.15;
             titleFontScaleMultiplier = 1.0;
 
@@ -32,6 +31,12 @@ class PpunchMenu : public Menu {
             defaultColor = 0xFFFFFFFF; 
             outlineColor = 0x505050FF; // light grey
             highlightBoxColor = 0x000000FF;
+
+            fixedHeight = true;
+            initialized = false;
+
+            LLastFrame = false;
+            RLastFrame = false;
         };
 
         Coord2D pos;
@@ -44,8 +49,8 @@ class PpunchMenu : public Menu {
         int lineHeightMultiplier;
         u8 outlineWidth;
 
-        bool fixedHeight = true;
-        u32 initialized: 1 = false;
+        bool fixedHeight;
+        u32 initialized;
 
         void init();
         void cleanup();
@@ -56,11 +61,11 @@ class PpunchMenu : public Menu {
         void drawHighlightBox();
         float lineHeight();
 
-        inline bool isActive() { return this->visible && this->paused; };
+        bool isActive() { return this->visible && this->paused; };
     private:
         u32 lastInputFrame;
-        bool LLastFrame = false;
-        bool RLastFrame = false;
+        bool LLastFrame;
+        bool RLastFrame;
 };
 
 #pragma region observers
@@ -87,13 +92,13 @@ class PlayerDataFlagObserver : public BaseObserver<PlayerData, u32> {
 public:
     PlayerDataFlagObserver(const char* name, BO_METH_PTR(PlayerData, u32)) : BaseObserver(name, instance, getter) {};
     virtual void render(TextPrinter* printer, char* buffer) {
-        auto byte = (*(this->instance).*getter)();
+        u32 flags = (*(this->instance).*getter)();
         char binBuf[50];
         char* bufPos = binBuf;
         char val;
 
         for (char i = 0; i < 32; i++) {
-            val = (byte >> i) & 0x1;
+            val = (flags >> i) & 0x1;
             *bufPos++ = (val == 0 ? '0' : '1');
             if (i % 8 == 7) {
                 *bufPos++ = ' ';
@@ -110,7 +115,7 @@ class PlayerDataHexObserver : public BaseObserver<PlayerData, u32> {
 public:
     PlayerDataHexObserver(const char* name, BO_METH_PTR(PlayerData, u32)) : BaseObserver(name, instance, getter) {};
     virtual void render(TextPrinter* printer, char* buffer) {
-        auto value = (*(this->instance).*getter)();
+        u32 value = (*(this->instance).*getter)();
         sprintf(buffer, "%s: 0x%08x", name, value);
         printer->printLine(buffer);
     };
@@ -120,7 +125,7 @@ class PlayerDataShortHexObserver : public BaseObserver<PlayerData, u16> {
 public:
     PlayerDataShortHexObserver(const char* name, BO_METH_PTR(PlayerData, u16)) : BaseObserver(name, instance, getter) {};
     virtual void render(TextPrinter* printer, char* buffer) {
-        auto value = (*(this->instance).*getter)();
+        u16 value = (*(this->instance).*getter)();
         sprintf(buffer, "%s: 0x%04x", name, value);
         printer->printLine(buffer);
     };
@@ -130,7 +135,7 @@ class PlayerDataByteHexObserver : public BaseObserver<PlayerData, char> {
 public:
     PlayerDataByteHexObserver(const char* name, BO_METH_PTR(PlayerData, char)) : BaseObserver(name, instance, getter) {};
     virtual void render(TextPrinter* printer, char* buffer) {
-        auto value = (*(this->instance).*getter)();
+        char value = (*(this->instance).*getter)();
         sprintf(buffer, "%s: 0x%02x", name, value);
         printer->printLine(buffer);
     };
@@ -140,7 +145,7 @@ class PlayerDataStrObserver: public BaseObserver<PlayerData, const char*> {
 public:
     PlayerDataStrObserver(const char* name, BO_METH_PTR(PlayerData, const char*)) : BaseObserver(name, instance, getter) {};
     virtual void render(TextPrinter* printer, char* buffer) {
-        auto value = (*(this->instance).*getter)();
+        const char* value = (*(this->instance).*getter)();
         sprintf(buffer, "%s: %s", name, value);
         printer->printLine(buffer);
     };
@@ -150,4 +155,4 @@ public:
 extern linkedlist<Popup> playerPopups[PP_MAX_PLAYERS];
 extern PpunchMenu& punchMenu;
 
-#endif
+} // namespace

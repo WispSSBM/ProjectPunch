@@ -30,6 +30,8 @@ namespace ProjectPunch {
             y = 0;
         }
 
+        Coord2D(int x, int y) {this->x = x; this -> y = y;}
+
         int x;
         int y;
     } Coord2D;
@@ -39,6 +41,8 @@ namespace ProjectPunch {
             x = 0;
             y = 0;
         }
+
+        Coord2DF(int x, int y) {this->x = x; this -> y = y;}
         float x;
         float y;
     } Coord2DF;

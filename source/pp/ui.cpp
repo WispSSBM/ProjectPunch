@@ -1,13 +1,17 @@
-#include "./ui.h"
+#include <ft/ft_manager.h>
 
-#include "./common.h"
-#include "./linkedlist.h"
-#include "./popup.h"
-#include "./menu.h"
-#include "./playerdata.h"
+#include "pp/input/pad.h"
+#include "pp/ui.h"
+#include "pp/common.h"
+#include "pp/collections/linkedlist.h"
+#include "pp/popup.h"
+#include "pp/menu.h"
+#include "pp/playerdata.h"
+#include "pp/fighter_names.h"
 
-#include <Brawl/FT/ftManager.h>
-#include "fighterNames.h"
+namespace ProjectPunch {
+
+using namespace Input;
 
 extern u32 frameCounter;
 
@@ -24,7 +28,7 @@ linkedlist<Popup> playerPopups[PP_MAX_PLAYERS] = {
 void PpunchMenu::init() {
     /* Controls Info Page */
     OSReport("Initializing Project Punch menu.\n");
-    auto& ctrlInfoPage = *(new Page(this));
+    Page& ctrlInfoPage = *(new Page(this));
     snprintf(ctrlInfoPage.title, 256, "Menu Controls");
     ctrlInfoPage.addOption(new LabelOption("L+R+DpadUp", "Open and close the menu."));
     ctrlInfoPage.addOption(new LabelOption("L/R", "Prev/Next Page"));
@@ -37,12 +41,12 @@ void PpunchMenu::init() {
     ctrlInfoPage.addOption(new LabelOption("L/R (hold on startup)", "Don't open this menu automatically"));
     addPage(&ctrlInfoPage);
 
-    auto fighters = FIGHTER_MANAGER->getEntryCount();
+    u32 fighters = g_ftManager->getEntryCount();
     OSReport("Detected %d fighters.\n", fighters);
     for (u32 i = 0; i < fighters; i++) {
-        auto& newPage = *(new Page(this));
-        auto& player = allPlayerData[i];
-        auto ftName = fighterName(player.charId);
+        Page& newPage = *(new Page(this));
+        PlayerData& player = allPlayerData[i];
+        const char* ftName = fighterName(player.charId);
         OSReport("Adding page for P%d: %s @ 0x%x\n", player.playerNumber, ftName, (void*)&player);
         snprintf(newPage.title, 256, "P%d = %s", i+1, fighterName(player.charId));
         newPage.addOption(new BoolOption("Popup: On-Shield Advantage", player.showOnShieldAdvantage));
@@ -50,7 +54,7 @@ void PpunchMenu::init() {
         newPage.addOption(new BoolOption("Show Fighter State", player.showFighterState));
         newPage.addOption(new SpacerOption());
 
-        auto& playerInfoSubpage = *(new SubpageOption("Fighter Info", true));
+        SubpageOption& playerInfoSubpage = *(new SubpageOption("Fighter Info", true));
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Action ID", &player, &PlayerData::action));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Action", &player, &PlayerData::actionStr));
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Subaction ID", &player, &PlayerData::subaction));
@@ -62,7 +66,7 @@ void PpunchMenu::init() {
     }
 
     // TODO: Reimplement scrolling. This is w/e for now.
-    auto& displayOptsPage = *(new Page(this));
+    Page& displayOptsPage = *(new Page(this));
     snprintf(displayOptsPage.title, 256, "Display Options");
     displayOptsPage.addOption(new IntOption<u8>("Opacity", opacity, 65, 255, true, true));
     displayOptsPage.addOption(new FloatOption("Title Font Scaling", titleFontScaleMultiplier, 0.0F, 10.0F, 0.01F));
@@ -71,32 +75,32 @@ void PpunchMenu::init() {
     displayOptsPage.addOption(new FloatOption("Font base X", baseFontScale.x, 0.0F, 10.0F, 0.01F));
     displayOptsPage.addOption(new FloatOption("Font base Y", baseFontScale.y, 0.0F, 10.0F, 0.01F));
 
-    auto& menuSizeSubPage = *(new SubpageOption("Menu Position", true));
+    SubpageOption& menuSizeSubPage = *(new SubpageOption("Menu Position", true));
     menuSizeSubPage.addOption(new IntOption<int>("Menu X", pos.x));
     menuSizeSubPage.addOption(new IntOption<int>("Menu Y", pos.y));
     menuSizeSubPage.addOption(new IntOption<int>("Menu W", size.x));
     menuSizeSubPage.addOption(new IntOption<int>("Menu H", size.y));
     displayOptsPage.addOption(&menuSizeSubPage);
 
-    auto& bgColorSubP = *(new SubpageOption("Menu BG", true));
-    bgColorSubP.addOption(new IntOption<u8>("R", bgColor.red, 0, 255, true, true));
-    bgColorSubP.addOption(new IntOption<u8>("G", bgColor.blue, 0, 255, true, true));
-    bgColorSubP.addOption(new IntOption<u8>("B", bgColor.green, 0, 255, true, true));
-    bgColorSubP.addOption(new IntOption<u8>("A", bgColor.alpha, 0, 255, true, true));
+    SubpageOption& bgColorSubP = *(new SubpageOption("Menu BG", true));
+    bgColorSubP.addOption(new IntOption<u8>("R", bgColor.r, 0, 255, true, true));
+    bgColorSubP.addOption(new IntOption<u8>("G", bgColor.b, 0, 255, true, true));
+    bgColorSubP.addOption(new IntOption<u8>("B", bgColor.g, 0, 255, true, true));
+    bgColorSubP.addOption(new IntOption<u8>("A", bgColor.a, 0, 255, true, true));
     displayOptsPage.addOption(&bgColorSubP);
 
-    auto& outlineColorSubP = *(new SubpageOption("Menu Outline", true));
-    outlineColorSubP.addOption(new IntOption<u8>("R", outlineColor.red, 0, 255, true, true));
-    outlineColorSubP.addOption(new IntOption<u8>("G", outlineColor.blue, 0, 255, true, true));
-    outlineColorSubP.addOption(new IntOption<u8>("B", outlineColor.green, 0, 255, true, true));
-    outlineColorSubP.addOption(new IntOption<u8>("A", outlineColor.alpha, 0, 255, true, true));
+    SubpageOption& outlineColorSubP = *(new SubpageOption("Menu Outline", true));
+    outlineColorSubP.addOption(new IntOption<u8>("R", outlineColor.r, 0, 255, true, true));
+    outlineColorSubP.addOption(new IntOption<u8>("G", outlineColor.b, 0, 255, true, true));
+    outlineColorSubP.addOption(new IntOption<u8>("B", outlineColor.g, 0, 255, true, true));
+    outlineColorSubP.addOption(new IntOption<u8>("A", outlineColor.a, 0, 255, true, true));
     displayOptsPage.addOption(&outlineColorSubP);
 
-    auto& highlightBoxSubP = *(new SubpageOption("Highlight Box", true));
-    highlightBoxSubP.addOption(new IntOption<u8>("R", highlightBoxColor.red, 0, 255, true, true));
-    highlightBoxSubP.addOption(new IntOption<u8>("G", highlightBoxColor.blue, 0, 255, true, true));
-    highlightBoxSubP.addOption(new IntOption<u8>("B", highlightBoxColor.green, 0, 255, true, true));
-    highlightBoxSubP.addOption(new IntOption<u8>("A", highlightBoxColor.alpha, 0, 255, true, true));
+    SubpageOption& highlightBoxSubP = *(new SubpageOption("Highlight Box", true));
+    highlightBoxSubP.addOption(new IntOption<u8>("R", highlightBoxColor.r, 0, 255, true, true));
+    highlightBoxSubP.addOption(new IntOption<u8>("G", highlightBoxColor.b, 0, 255, true, true));
+    highlightBoxSubP.addOption(new IntOption<u8>("B", highlightBoxColor.g, 0, 255, true, true));
+    highlightBoxSubP.addOption(new IntOption<u8>("A", highlightBoxColor.a, 0, 255, true, true));
     displayOptsPage.addOption(&highlightBoxSubP);
     addPage(&displayOptsPage);
 
@@ -114,15 +118,14 @@ void PpunchMenu::cleanup() {
 }
 
 void PpunchMenu::handleInput() {
-    auto& menu = *this;
-    PADButtons btn;
+    PpunchMenu& menu = *this;
 
     u16 mask = 0b0001111101111111; // These button fields are unknown.
-    btn.bits = (
-        PREVIOUS_PADS[0].button.bits 
-        | PREVIOUS_PADS[1].button.bits 
-        | PREVIOUS_PADS[2].button.bits 
-        | PREVIOUS_PADS[3].button.bits
+    PadButtons buttons = (
+        g_padStatus[0].btns.bits
+        | g_padStatus[1].btns.bits 
+        | g_padStatus[2].btns.bits 
+        | g_padStatus[3].btns.bits
     ) & mask; 
 
     // The following additions to the mask are things that we want
@@ -137,50 +140,54 @@ void PpunchMenu::handleInput() {
     if (RLastFrame) {
         mask &= 0b1111111111011111;
     }
-    if ((btn.bits & mask) == 0) {
-        #ifdef PP_MENU_INPUT_DEBUG
-        OSReport("Bailed out by bitmask: %d\n", btn.bits);
-        #endif
-        goto end; // shortcut
-    }
 
-    if (!btn.X && ((frameCounter - lastInputFrame) < PP_MENU_INPUT_SPEED)) {
-        #ifdef PP_MENU_INPUT_DEBUG
-        OSReport("Bailed out by debounce: %d\n", btn.bits);
-        #endif
-        goto end; // debounce inputs.
-    } 
+    do {
 
-    lastInputFrame = frameCounter;
+        if ((buttons.bits & mask) == 0) {
+#ifdef PP_MENU_INPUT_DEBUG
+            OSReport("Bailed out by bitmask: %d\n", btn.bits);
+#endif
+            break; // shortcut
+        }
+
+        if (!buttons.X && ((frameCounter - lastInputFrame) < PP_MENU_INPUT_SPEED)) {
+#ifdef PP_MENU_INPUT_DEBUG
+            OSReport("Bailed out by debounce: %d\n", btn.bits);
+#endif
+            break; // debounce inputs.
+        }
+
+        lastInputFrame = frameCounter;
 
 
-    if (btn.L && btn.R && btn.UpDPad) {
-        menu.toggle();
-        goto end;
-    }
+        if (buttons.L && buttons.R && buttons.UpDPad) {
+            menu.toggle();
+            break;
+        }
 
-    if (!menu.isActive()) {
-        #ifdef PP_MENU_INPUT_DEBUG
-        OSReport("Bailed out by !isActive: %d\n", btn.bits);
-        #endif
-        goto end; // reduce nesting.
-    }
+        if (!menu.isActive()) {
+#ifdef PP_MENU_INPUT_DEBUG
+            OSReport("Bailed out by !isActive: %d\n", buttons.bits);
+#endif
+            break; // reduce nesting.
+        }
 
-    if (btn.A) { menu.select();   goto end; }
-    if (btn.B) { menu.deselect(); goto end; }
+        if (buttons.A) { menu.select();   break; }
+        if (buttons.B) { menu.deselect(); break; }
 
-    if (btn.UpDPad)    menu.up();
-    else if (btn.DownDPad)  menu.down();
-    else if (btn.RightDPad) menu.modify(btn.Y ? 5 : 1);
-    else if (btn.LeftDPad)  menu.modify(btn.Y ? -5 : -1);
-    else if (btn.L && !LLastFrame)  menu.prevPage();
-    else if (btn.R && !RLastFrame)  menu.nextPage();
-    else if (btn.Start) menu.unpause();
-    //}
-    end:
-        LLastFrame = btn.L == true;
-        RLastFrame = btn.R == true;
-        return;
+        if (buttons.UpDPad)    menu.up();
+        else if (buttons.DownDPad)  menu.down();
+        else if (buttons.RightDPad) menu.modify(buttons.Y ? 5 : 1);
+        else if (buttons.LeftDPad)  menu.modify(buttons.Y ? -5 : -1);
+        else if (buttons.L && !LLastFrame)  menu.prevPage();
+        else if (buttons.R && !RLastFrame)  menu.nextPage();
+        else if (buttons.Start) menu.unpause();
+        //}
+    } while (false);
+
+    LLastFrame = buttons.L == true;
+    RLastFrame = buttons.R == true;
+    return;
 }
 
 float PpunchMenu::lineHeight() {
@@ -190,14 +197,14 @@ float PpunchMenu::lineHeight() {
 
 // #define MELEE_STD_FONT (FontData*) 0x80497d2c; // crash
 // #define MELEE_HIRANGA_FONT (FontData*) 0x80497d54; // crash
-#define END_FONT (FontData*) 0x80497da4; // Works, Blocky, no punctuation
+#define END_FONT (void*) 0x80497da4; // Works, Blocky, no punctuation
 // Works: . / ? " ~ ! (@=pencil) % & + - = ' : ; , 
 // Doesnt: () # $ ^ * _ ` [] {} \ <> |
 // #define MELEE_MONO_FONT (FontData*) 0x80497dcc; // crash (needs monospace maybe? (no, doesn't work))
 // resant font (I use)
 // #define FOX_FONT (FontData*) 0x80497df4; // crash
 // #define ALERT_FONT (FontData*) 0x80497e1c; // crash
-#define USA_MAIN_MENU_FONT (FontData*) 0x80497e6c; // Works, no punctuation
+#define USA_MAIN_MENU_FONT (void*) 0x80497e6c; // Works, no punctuation
 // #define UNKNOWN_FONT (FontData*) 0x80497d7c; // crash
 void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
     if (!visible) { return; }
@@ -209,33 +216,34 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
     /* Setup */
     printer.setup();
     printer.renderPre = true;
-    Message& printerMsgObj = printer.message;
-    printerMsgObj.xPos = pos.x + padding;
-    printerMsgObj.yPos = pos.y + padding;
-    printerMsgObj.zPos = 0;
-    printer.start2D();
-
+    ms::CharWriter& charWriter = *printer.charWriter;
+    charWriter.SetCursor(pos.x + padding, pos.y + padding, 0);
     printer.startBoundingBox();
 
     /* Print title */
-    auto& currentPage = *getCurrentPage();
+    Page& currentPage = *getCurrentPage();
     snprintf(buffer, maxLen, "Page %d / %d: %s", currentPageIdx+1, pages.size(), currentPage.getTitle());
-    printerMsgObj.fontScaleY = titleBaseFontScale.y * titleFontScaleMultiplier;
-    printerMsgObj.fontScaleX = titleBaseFontScale.x * titleFontScaleMultiplier;
+    charWriter.SetScale(
+        titleBaseFontScale.x * titleFontScaleMultiplier,
+        titleBaseFontScale.y * titleFontScaleMultiplier
+    );
+
     printer.lineHeight = this->titleBaseFontScale.y * titleFontScaleMultiplier * this->lineHeightMultiplier;
-    printer.message.edgeWidth = 1;
-    printer.message.edgeColor = 0x000000FF;
-    printer.message.font = END_FONT;
-    printer.message.drawFlag.alignment = 2;
+    printer.charWriter->m_edgeWidth = 1;
+    printer.charWriter->m_edgeColor = Color(0x000000FF).utColor;
+    printer.charWriter->m_font = END_FONT;
     printer.setTextColor(applyAlpha(defaultColor, opacity));
     printer.printLine(buffer);
     
     /* Print body */
-    printer.message.font = MELEE_FONT;
-    printerMsgObj.fontScaleY = baseFontScale.y * fontScaleMultiplier;
-    printerMsgObj.fontScaleX = baseFontScale.x * fontScaleMultiplier;
+    charWriter.m_font = MELEE_FONT;
+    charWriter.SetScale(
+        baseFontScale.x * fontScaleMultiplier,
+        baseFontScale.y * fontScaleMultiplier
+    );
     printer.lineHeight = lineHeight();
-    printerMsgObj.yPos += padding;
+    charWriter.m_yPos += padding;
+
     currentPage.render(&printer, buffer);
 
     /* Draw graphics */
@@ -248,28 +256,28 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
 }
 
 void PpunchMenu::drawBg(TextPrinter& printer) {
-    auto& message = printer.message;
+    ms::CharWriter& charWriter = *printer.charWriter;
     // void Te    
-    renderables.items.preFrame.push(new Rect{
-            0,
-            1,
-            applyAlpha(bgColor, opacity),
-            (float)pos.y,
-            //message.yPos + printer.lineHeight + padding,
-            (float)pos.y + size.y,
-            (float)pos.x,
-            (float)(pos.x + size.x),
-            true
-    });
+    renderables.items.preFrame.push(new Graphics::Rect(
+        0,
+        1,
+        applyAlpha(bgColor, opacity).gxColor,
+        (float)pos.y,
+        //message.yPos + printer.lineHeight + padding,
+        (float)pos.y + size.y,
+        (float)pos.x,
+        (float)(pos.x + size.x),
+        true
+    ));
 }
 
 void PpunchMenu::drawOutline(TextPrinter& printer) {
-    auto& message = printer.message;
+    ms::CharWriter& message = *printer.charWriter;
 
-    renderables.items.preFrame.push(new RectOutline{
+    renderables.items.preFrame.push(new RectOutline(
             0,
             1,
-            applyAlpha(outlineColor, opacity),
+            applyAlpha(outlineColor, opacity).gxColor,
             (float)(pos.y),
 //            message.yPos + printer.lineHeight + padding + 1,
             (float)pos.y + size.y,
@@ -277,12 +285,12 @@ void PpunchMenu::drawOutline(TextPrinter& printer) {
             (float)(pos.x + size.x),
             outlineWidth * 6,
             true
-    });
+    ));
 
-    renderables.items.preFrame.push(new RectOutline{
+    renderables.items.preFrame.push(new RectOutline(
             0,
             1,
-            applyAlpha(0xFFFFFFFF, opacity),
+            applyAlpha(0xFFFFFFFF, opacity).gxColor,
             (float)(pos.y),
 //            message.yPos + printer.lineHeight + padding + 1,
             (float)pos.y + size.y,
@@ -290,26 +298,28 @@ void PpunchMenu::drawOutline(TextPrinter& printer) {
             (float)(pos.x + size.x),
             12,
             true
-    });
+    ));
 }
 
 void PpunchMenu::drawHighlightBox() {
-    auto& currentPage = *pages[currentPageIdx];
+    Page& currentPage = *pages[currentPageIdx];
     if (!(currentPage.highlightedOptionBottom == 0 || currentPage.highlightedOptionTop == 0)) { 
         // OSReport("Drawing highlight top: %0.01f bot: %0.01f\n", currentPage.highlightedOptionTop, currentPage.highlightedOptionBottom);
 
-        renderables.items.preFrame.push(new Rect {
+        renderables.items.preFrame.push(new Rect (
             0,
             1,
-            applyAlpha(highlightBoxColor, opacity),
+            applyAlpha(highlightBoxColor, opacity).gxColor,
             currentPage.highlightedOptionTop,
             currentPage.highlightedOptionBottom,
             (float)pos.x,
             (float)(pos.x + size.x),
             true
-        });
+        ));
 
         currentPage.highlightedOptionBottom = 0;
         currentPage.highlightedOptionTop = 0;
     }
 }
+
+} // namespace

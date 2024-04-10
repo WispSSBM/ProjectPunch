@@ -12,6 +12,7 @@
 #include "pp/graphics/draw.h"
 #include "pp/graphics/drawable.h"
 #include "pp/popup.h"
+#include "pp/input/pad.h"
 
 namespace ProjectPunch {
 namespace Entry {
@@ -40,11 +41,14 @@ void helloWorld() {
             Collections::testLinkedList();
             initialized = true;
 
-            popup = new ProjectPunch::Popup("Hello world.\n");
+
+        }
+
+        if (ProjectPunch::Input::g_padStatus[0].btns.A && popup == NULL) {
+            popup = new ProjectPunch::Popup("A press.\n");
             popup->coords.x = 100;
             popup->coords.y = 100;
         }
-
 
         /* Test out printing stuff. */
         printer.setup(true);
