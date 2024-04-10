@@ -2,7 +2,7 @@
 #include <gf/gf_memory_pool.h>
 #include <sy_core.h>
 
-#include "sandbox.h"
+#include "projectPunch.h"
 
 namespace Syringe {
 
@@ -25,7 +25,7 @@ namespace Syringe {
             (*ctor)();
         }
 
-        Sandbox::Init();
+        ProjectPunch::Init();
     }
 
     void _epilog()
@@ -36,6 +36,8 @@ namespace Syringe {
         {
             (*dtor)();
         }
+		
+		ProjectPunch::Destroy();
     }
 
     void _unresolved(void)
