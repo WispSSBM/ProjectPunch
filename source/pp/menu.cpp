@@ -75,7 +75,6 @@ void Page::render(TextPrinter* printer, char* buffer) {
     Menu& m = *menu;
     char len = options.size();
 
-    OSReport("Page @ 0x%0x render(), %d options.\n", this, len);
     for (char i = 0; i < len; i++) {
         OptionType* option = reinterpret_cast<OptionType*>(options[i]);
 
@@ -99,7 +98,6 @@ void Page::render(TextPrinter* printer, char* buffer) {
         }
         printer->padToWidth(RENDER_X_SPACING / 5);
 
-        OSReport("Rendering option %d @ 0x%0x\n", i, option);
         option->render(printer, buffer);
     }
 }
@@ -464,7 +462,6 @@ void SubpageOption::setParentPage(Page* p) {
     int len = options.size();
     for (int i = 0; i < len; i++) { 
         OptionType* option = reinterpret_cast<OptionType*>(options[i]);
-        OSReport ("Subpage option setting option %d @ (0x%0X) to have parent page 0x%0X\n", i, option, p);
         option->setParentPage(p); 
     };
 }

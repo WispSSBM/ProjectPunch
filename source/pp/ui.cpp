@@ -61,16 +61,11 @@ void PpunchMenu::init() {
         SubpageOption& playerInfoSubpage = *(new SubpageOption("Fighter Info", true));
         newPage.addOption(&playerInfoSubpage);
 
-        OSReport("Created player info subpage @ 0x%0X\n", &playerInfoSubpage);
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Action ID", &player, &PlayerData::action));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Action", &player, &PlayerData::actionStr));
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Subaction ID", &player, &PlayerData::subaction));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Subaction Name", &player, &PlayerData::subactionStr));
         playerInfoSubpage.addOption(new PlayerDataFlagObserver("RA Bits", &player, &PlayerData::raLowBits));
-        for (int ctr = 0; ctr < playerInfoSubpage.options.size(); ctr++) {
-            OSReport("Subpage @ 0x%0X has option %d at 0x%0X\n", &playerInfoSubpage, ctr, playerInfoSubpage.options[ctr]);
-        }
-
         addPage(&newPage);
     }
 
@@ -257,7 +252,6 @@ void PpunchMenu::render(TextPrinter& printer, char* buffer, u32 maxLen) {
     printer.lineHeight = lineHeight();
     charWriter.m_yPos += padding;
 
-    OSReport("Rendering current page (0x%x) out of %d pages\n", &currentPage, pages.size());
     currentPage.render(&printer, buffer);
 
     /* Draw graphics */

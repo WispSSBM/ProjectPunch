@@ -5,18 +5,24 @@
 #include "pp/entry.h"
 
 namespace Syringe {
+    const PluginMeta META = {
+        "ProjectPunch",
+        "Wisp",
+        Version("0.0.1"),
+        Version(SYRINGE_VERSION)
+    };
 
     extern "C" {
     typedef void (*PFN_voidfunc)();
     __attribute__((section(".ctors"))) extern PFN_voidfunc _ctors[];
     __attribute__((section(".ctors"))) extern PFN_voidfunc _dtors[];
 
-    void _prolog();
+    const PluginMeta* _prolog();
     void _epilog();
     void _unresolved();
     }
 
-    void _prolog()
+    const PluginMeta* _prolog()
     {
         // Run global constructors
         PFN_voidfunc* ctor;
@@ -26,6 +32,7 @@ namespace Syringe {
         }
 
         ProjectPunch::Entry::Init();
+        return &META;
     }
 
     void _epilog()

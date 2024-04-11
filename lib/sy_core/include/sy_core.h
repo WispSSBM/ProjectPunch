@@ -1,10 +1,23 @@
 #pragma once
 
 #include <gf/gf_module.h>
+#include <printf.h>
+#include <sscanf.h>
 #include <stddef.h>
 #include <types.h>
 
+#include "version.h"
+
 extern "C" char MOD_PATCH_DIR[0x18];
+
+namespace Syringe {
+    struct PluginMeta {
+        char NAME[20];
+        char AUTHOR[20];
+        Version VERSION;
+        Version SY_VERSION;
+    };
+} // namespace Syringe
 
 namespace SyringeCore {
 
@@ -145,6 +158,8 @@ namespace SyringeCore {
      * @param moduleId ID of the target module
      */
     void syReplaceFuncRel(const u32 offset, const void* replacement, void** original, int moduleId);
+
+    int syLoadPlugins(const char* folder);
 
     typedef void (*ModuleLoadCB)(gfModuleInfo*);
 
