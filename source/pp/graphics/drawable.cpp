@@ -256,7 +256,9 @@ void Renderables::renderPre() {
     for (int i = 0; i < items.preFrame.size(); i++) {
         Drawable* drawable = reinterpret_cast<Drawable*>(items.preFrame[i]);
 
-        drawItem(drawable);
+        if (drawable != NULL) {
+            drawItem(drawable);
+        }
         if (drawable->lifeTime <= 0) {
             // delete items.preFrame[i];
             items.preFrame.erase(i); 

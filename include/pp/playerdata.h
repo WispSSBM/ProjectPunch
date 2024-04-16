@@ -15,33 +15,17 @@ struct PlayerDisplayOptions;
 
 // This is stuff that changes on every frame.
 struct PlayerDataOnFrame {
-    PlayerDataOnFrame() {
-        strncpy(subactionName, "UNKNOWN", PP_ACTION_NAME_LEN);
-        OSReport("PlayerDataOnFrame ctor: this=0x%x\n", this);
-        action = 0;
-        subaction = 0;
-        subactionFrame = 0;
-        subactionTotalFrames = 0;
-
-        lowRABits = 0;
-        actionFrame = 0;
-        actionTotalFrames = 0;
-        hitstun = 0;
-        shieldstun = 0;
-
-        canCancel = false;
-        didConnectAttack = false;
-    };
+    PlayerDataOnFrame();
 
     int action;
+    char* actionName;
     u32 subaction;
-    char subactionName[PP_ACTION_NAME_LEN];
+    char* subactionName;
     float subactionFrame;
     float subactionTotalFrames;
 
     u32 lowRABits;
     u16 actionFrame;
-    u16 actionTotalFrames;
     u16 hitstun;
     u16 shieldstun;
 
@@ -56,142 +40,72 @@ struct PlayerDataOnFrame {
 // This is mostly meta-data that we track over multiple frames.
 // It doesn't auto-clear and needs to be cleared manually.
 struct PlayerData {
-    public:
-        PlayerData() {
-            maxHitstun = 0;
-            maxShieldstun = 0;
-            attackTarget = NULL;
-            becameActionableOnFrame = -1;
-            lastAttackEndedOnFrame = -1;
-            attackingAction = -1;
-            prev = new PlayerDataOnFrame();
-            current = new PlayerDataOnFrame();
+    PlayerData();
+    u16 maxHitstun;
+    u16 maxShieldstun;
+    u8 playerNumber;
+    ftKind charId;
+    int taskId;
+    int entryId;
 
-            didStartAttack = false;
-            didConnectAttack = false;
-            isAttackingShield = false;
-            isAttackingFighter = false;
-            showOnHitAdvantage = false;
-            showOnShieldAdvantage = false;
-            showFighterState = false;
-            showActOutOfLag = false;
-            OSReport("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
-        };
-        u16 maxHitstun;
-        u16 maxShieldstun;
-        u8 playerNumber;
-        ftKind charId;
+    char* fighterName;
 
-        /* Targeting bookkeeping */
-        PlayerData* attackTarget;
-        char advantageBonusCounter;
-        u32 becameActionableOnFrame;
-        u32 lastAttackEndedOnFrame;
-        u16 attackingAction;
+    /* Targeting bookkeeping */
+    PlayerData* attackTarget;
+    char advantageBonusCounter;
+    u32 becameActionableOnFrame;
+    u32 lastAttackEndedOnFrame;
+    u16 attackingAction;
 
-        /* Swapped every frame */
-        PlayerDataOnFrame* prev;
-        PlayerDataOnFrame* current;
+    /* Swapped every frame */
+    PlayerDataOnFrame* prev;
+    PlayerDataOnFrame* current;
 
-        /* interactive flags */
-        u32 didStartAttack: 1;
-        u32 didConnectAttack: 1;
-        u32 isAttackingShield: 1;
-        u32 isAttackingFighter: 1;
+    /* interactive flags */
+    u32 didStartAttack : 1;
+    u32 didConnectAttack : 1;
+    u32 isAttackingShield : 1;
+    u32 isAttackingFighter : 1;
 
-        /* display flags */
-        bool showOnHitAdvantage;
-        bool showOnShieldAdvantage;
-        bool showActOutOfLag;
-        bool showFighterState;
+    /* display flags */
+    bool showOnHitAdvantage;
+    bool showOnShieldAdvantage;
+    bool showActOutOfLag;
+    bool showFighterState;
 
 
-        /* aliases for fields on Current*/
-        u16 action() const { return (u16)this->current->action; };
-        const char* actionStr() const { return actionName(this->action()); }
-        inline u16 actionFrame() const { return current->actionFrame; };
-        inline u16 actionTotalFrames() const { return current->actionTotalFrames; };
-        inline u32 raLowBits() const { return current->lowRABits; };
+    /* aliases for fields on Current*/
+    u16 action() const;
+    const char* actionStr() const;
+    u16 actionFrame() const;
+    u32 raLowBits() const;
 
-        inline u16 subaction() const { return current->subaction; };
-        inline const char* subactionStr() const { return current->subactionName; }
-        inline float subactionFrame() const { return current->subactionFrame; };
-        inline float subactionTotalFrames() const { return current->subactionTotalFrames; };
+    u16 subaction() const;
+    const char* subactionStr() const;
+    float subactionFrame() const;
+    float subactionTotalFrames() const;
 
-        /* Derived information. */
-        inline bool didReceiveHitstun() const;
-        inline bool didReceiveShieldstun() const;
-        inline bool didBecomeActionable() const;
-        inline bool didEnableCancel() const;
-        inline bool didActionChange() const;
-        inline bool didSubactionChange() const;
-        inline bool didEnterShield() const;
-        inline void prepareNextFrame();
+    int writeLowRABoolStr(char* buffer) const;
 
-        /* Lifecycle methods */
-        void resetTargeting();
-        bool resolvePlayerActionable();
-        bool resolveTargetActionable();
-        int debugStr(char* buffer);
+    /* Derived information. */
+    bool didReceiveHitstun() const;
+    bool didReceiveShieldstun() const;
+    bool didBecomeActionable() const;
+    bool didEnableCancel() const;
+    bool didActionChange() const;
+    bool didSubactionChange() const;
+    bool didEnterShield() const;
+    void prepareNextFrame();
+
+    /* Lifecycle methods */
+    void resetTargeting();
+    bool resolvePlayerActionable();
+    bool resolveTargetActionable();
+    int debugStr(char* buffer);
 };
 
 struct PlayerDisplayOptions {
 };
-
-
-inline bool PlayerData::didEnterShield() const {
-    if (didSubactionChange()) {
-        if (
-            startsWith(
-                current->subactionName,
-                "Guard"
-            )
-        ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-inline bool PlayerData::didReceiveHitstun() const {
-        return current->hitstun != 0 && (current->hitstun > prev->hitstun);
-}
-
-inline bool PlayerData::didReceiveShieldstun() const {
-        return current->shieldstun != 0 && (current->shieldstun > prev->shieldstun);
-}
-
-inline bool PlayerData::didBecomeActionable() const {
-    return true;
-}
-
-inline bool PlayerData::didEnableCancel() const {
-    return current->canCancel && !(prev->canCancel);
-}
-
-inline bool PlayerData::didActionChange() const {
-    return (
-        (current->action != prev->action)
-        || current->actionFrame != (prev->actionFrame + 1)
-    );
-}
-
-inline bool PlayerData::didSubactionChange() const {
-    return (!prev->isShielding() && current->isShielding());
-}
-
-inline bool PlayerDataOnFrame::isShielding() const {
-    return startsWith(subactionName, "Guard");
-}
-
-inline void PlayerData::prepareNextFrame() {
-    PlayerDataOnFrame* tmp = current;
-
-    current = prev;
-    prev = tmp;
-
-    memset(current, 0, sizeof(PlayerDataOnFrame));
-}
 
 
 extern PlayerData* allPlayerData;

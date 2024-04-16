@@ -14,18 +14,20 @@ void Popup::draw(TextPrinter& printer) {
     // This will mess with the printer settings, you will likely have to reset draw mode and
     // so on after this is called.
     if (!this->expired()) {
-        printer.setup();
-        printer.setTextColor(COLOR_WHITE);
         printer.renderPre = true;
-        ms::CharWriter& charWriter = *(printer.charWriter);
-        charWriter.SetScale(PP_DEFAULT_FONT_SCALE_X, PP_DEFAULT_FONT_SCALE_Y);
-        printer.lineHeight = charWriter.m_fontScaleY * 20;
-        charWriter.SetCursor(coords.x, coords.y, 0);
+        printer.setPosition(coords.x, coords.y);
+        printer.setMinWidth(this->minWidth);
+        printer.setScale(gPopupConfig.fontScale, gPopupConfig.fontScaleMult, gPopupConfig.lineHeightMult);
+        printer.setTextColor(gPopupConfig.textColor);
+        printer.boxPadding = gPopupConfig.popupPadding;
+        printer.boxBgColor = gPopupConfig.bgColor;
+        printer.boxBorderColor = gPopupConfig.outlineColor;
+        printer.boxHighlightColor = gPopupConfig.highlightColor;
+        printer.boxBorderWidth = 2;
+        const ms::CharWriter& charWriter = *printer.charWriter;
 
-        printer.startBoundingBox();
+        printer.begin();
         printer.print(this->text);
-        printer.padToWidth(this->minWidth);
-
 
         // Gradient from yellow to red based on progress.
         Color progressColor = 0;
@@ -67,7 +69,7 @@ void Popup::draw(TextPrinter& printer) {
         OSReport("Rendering popup: %s", this->message);
         #endif
 
-        printer.saveBoundingBox(gPopupConfig.bgColor, gPopupConfig.outlineColor, gPopupConfig.highlightColor, 2, gPopupConfig.popupPadding);
+        printer.renderBoundingBox();
         vector& shapes = renderables.items.preFrame;
         shapes.push(static_cast<Drawable*>(progressRect));
         // put the progress rect underneath the outline/highlight.

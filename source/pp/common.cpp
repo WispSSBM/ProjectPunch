@@ -1,3 +1,4 @@
+#include <OS/OSError.h>
 #include <types.h>
 #include "pp/common.h"
 
@@ -23,10 +24,18 @@ int max(int x1, int x2) {
     return x2;
 }
 
-Color applyAlpha(Color input, u8 alpha) {
-    float alphaRatio = ((float)alpha / 255);
-    input.a *= (float)alpha / (float)255;
-    return input;
+Color Color::withAlpha(u8 alpha) const {
+    Color outColor = *this;
+    outColor.a *= ((float)alpha / (float)255);
+    return outColor;
+}
+
+void Color::applyAlpha(u8 alpha) {
+    this->a *= (float)alpha / (float)255;
+}
+
+void Color::debugPrint(const char* title = "") {
+    OSReport("%s - r: 0x%0x g: 0x%0x b: 0x%0x a: 0x%0x\n", title, this->r, this->b, this->g, this->a);
 }
 
 //hacky way to check if in game

@@ -21,6 +21,9 @@
 
 #define RA_BIT_ENABLE_ACTION_TRANSITION 0x10
 
+// Re-using brawl-defined strings to save memory
+extern "C" const char* g_strError;          // "ERROR STRING: %s\n"
+extern "C" const char* g_strTypedError;     // "%s Error: %d\n"
 namespace ProjectPunch {
 
     typedef struct Coord2D {
@@ -51,9 +54,13 @@ namespace ProjectPunch {
     } Coord2DF;
 
     typedef union Color {
+        Color() { this->value = 0; }
         Color(u32 val): value(val) {};
         Color(nw4r::ut::Color utC): utColor(utC) {};
         Color(GXColor gxC): gxColor(gxC) {};
+        Color withAlpha(u8 alpha) const;
+        void applyAlpha(u8 alpha);
+        void debugPrint(const char* title);
 
         u32 value;
         nw4r::ut::Color utColor;

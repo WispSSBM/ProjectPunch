@@ -15,34 +15,47 @@ namespace ProjectPunch {
 namespace Graphics {
 
 struct TextPrinter {
-    TextPrinter() {
-        lineHeight = 20;
-        is2D = false;
-        renderPre = false;
-        bboxIdx = 0;
-        charWriter = new ms::CharWriter();
-    };
-
+    TextPrinter();
+    virtual ~TextPrinter() { delete this->charWriter; }
     void print(const char* characters);
+    void printf(const char* fmt, ...);
     void printLine(const char* characters);
-    void padToWidth(float width);
     void newLine(bool fromPrintFn = false);
-    void startBoundingBox();
-    void saveBoundingBox(Color color, float boxPadding = 0);
-    void saveBoundingBox(Color color, Color outlineColor, Color highlightColor, int outlineWidth, float boxPadding = 0);
+
+    // lifecycle stuff.
+    void begin();
+    void begin(bool is2D);
+    void renderBoundingBox();
+    void reset();
+
     void setTextColor(Color color);
-    void setup();
-    void setup(bool is2D);
+    void setTextBorder(Color color, float width = 1.f);
+    void setScale(Coord2DF scaleDims, float scale, float lineHeight);
+    void setPosition(float x, float y);
+    void setMinWidth(float minWidth);
+    Coord2DF getPosition() const;
 
     ms::CharWriter* charWriter;
+    Coord2DF scale;
+    float startY;
     float lineHeight;
     float maxWidth;
     float lineStart;
-    float startY;
-    float lastPadLocation;
+    float boxPadding;
+    u8 opacity;
+    Color textColor;
+    Color textBorderColor;
+    Color boxBgColor;
+    Color boxBorderColor;
+    Color boxHighlightColor;
+    int boxBorderWidth;
+    float textBorderWidth;
     bool is2D; 
     bool renderPre;
     u32 bboxIdx;
+
+    private:
+        void padToWidth(float width);
 };
 
 //TODO: Maybe make these linker symbols instead of static defs

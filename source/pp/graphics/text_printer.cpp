@@ -6,14 +6,44 @@
 #include "pp/graphics/text_printer.h"
 #include "pp/graphics/draw.h"
 #include "pp/graphics/drawable.h"
+#include <cstdio>
+#include <stdarg.h>
 #include <OS/OSError.h>
-#include <GX/GXGeometry.h>
 #include <gf/gf_draw.h>
+
+#ifdef PP_DEBUG_ALL
+#define PP_DEBUG_TEXT_PRINTER 1
+#endif
+
+#ifdef PP_DEBUG_TEXT_PRINTER
+#define PP_DEBUG(...) OSReport(__VA_ARGS__)
+#else
+#define PP_DEBUG(...)
+#endif
 
 namespace ProjectPunch {
 namespace Graphics {
 
 TextPrinter printer;
+
+TextPrinter::TextPrinter(): 
+    scale(1.f, 1.f), 
+    textColor(0xFFFFFFFF), 
+    textBorderColor(0x00000000),
+    boxBgColor(0xCCCCCCFF),
+    boxHighlightColor(0xFFFFFFCC)
+{
+    lineHeight = 20;
+    is2D = false;
+    renderPre = false;
+    bboxIdx = 0;
+    charWriter = new ms::CharWriter();
+    // This is always loaded, but should work out how to do font loading without 
+    // randomly assigning memory addresses.
+    charWriter->m_font = MELEE_FONT;
+
+    reset();
+};
 
 /* Info about fonts... */
 // MELEE_FONT is always loaded, but we should work out how to do 
@@ -54,15 +84,12 @@ TextPrinter printer;
 
 //Must be called before doing anything after graphics settings were
 //modified. Otherwise the game will likely hang and crash.
-void TextPrinter::setup() {
-    this->setup(true);
+void TextPrinter::begin() {
+    this->begin(true);
 }
 
-void TextPrinter::setup(bool is2D) {
-    // This is always loaded, but should work out how to do font loading without 
-    // randomly assigning memory addresses.
-    charWriter->m_font = MELEE_FONT;
-
+void TextPrinter::begin(bool is2D) {
+    PP_DEBUG("TextPrinter::begin()\n");
     //clear 2D flag
     this->is2D = is2D;
     if (is2D) {
@@ -80,29 +107,95 @@ void TextPrinter::setup(bool is2D) {
         startNormalDraw();
     }
 
-    startBoundingBox();
-    charWriter->SetupGX();
-    GXSetCullMode(GX_CULL_NONE);
+    startY    = charWriter->GetCursorY();
+    lineStart = charWriter->GetCursorX();
 }
 
+void TextPrinter::reset() {
+
+    // This is always loaded, but should work out how to do font loading without 
+    // randomly assigning memory addresses.
+    charWriter->m_font = MELEE_FONT;
+
+    opacity = 0xFF;
+    textColor = 0xFFFFFFFF;
+    textBorderColor = 0x00000000;
+    boxBgColor = 0x000000FF;
+    boxBorderColor = 0xCCCCCCFF;
+    boxHighlightColor = 0xFFFFFFCC;
+    boxBorderWidth = 2;
+    textBorderWidth = 0;
+    maxWidth = 0;
+    lineStart = 0;
+    boxPadding = 10;
+}
+
+
+
 void TextPrinter::printLine(const char *chars) {
-    #ifdef PPUNCH_TEXTPRINTER_DEBUG
-    const ms::CharWriter& cw = *charWriter;
-    OSReport("DEBUG: textPrinter print (cw.x: %f, cw.y: %f, cw.scalex: %f, cw.scaley: %f: %s\n", 
-        cw.m_xPos, cw.m_yPos,
-        cw.m_fontScaleX, cw.m_fontScaleY,
-        chars
-    );
-    #endif
     print(chars);
     newLine();
 }
 
 void TextPrinter::setTextColor(Color color) {
-    charWriter->SetTextColor(color.utColor);
+    #ifdef PP_DEBUG_TEXT_PRINTER
+    color.debugPrint("TextPrinter::setTextColor");
+    #endif
+    this->textColor = color;
+}
+
+void TextPrinter::setTextBorder(Color color, float width) {
+    #ifdef PP_DEBUG_TEXT_PRINTER
+    PP_DEBUG("TextPrinter::setTextBorder width: %f\n", width);
+    color.debugPrint("setTextBorder");
+    #endif
+    
+    this->textBorderColor = color;
+    this->textBorderWidth = width;
+}
+
+void TextPrinter::setScale(Coord2DF scaleDims, float multiplier, float lineHeightMult = 25) {
+    PP_DEBUG("TextPrinter::setScale(scale=(%f, %f), mult=%f, lineMult=%f);\n", scaleDims.x, scaleDims.y, multiplier, lineHeightMult);
+    this->scale.x = scaleDims.x * multiplier;
+    this->scale.y = scaleDims.y * multiplier;
+    this->lineHeight = this->scale.y * lineHeightMult;
+}
+
+void TextPrinter::setPosition(float x, float y) {
+    PP_DEBUG("TextPrinter::setPosition(%f, %f);\n", x, y);
+    charWriter->SetCursor(x, y, 0);
+}
+
+void TextPrinter::setMinWidth(float minWidth) {
+    this->maxWidth = minWidth;
+}
+
+Coord2DF TextPrinter::getPosition() const {
+    return Coord2DF(charWriter->GetCursorX(), charWriter->GetCursorY());
+}
+
+void TextPrinter::printf(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(strManipBuffer, PP_STR_MANIP_SIZE, fmt, args);
+    print(strManipBuffer);
+    va_end(args);
 }
 
 void TextPrinter::print(const char *chars) {
+    PP_DEBUG("TextPrinter::print: %s\n", chars);
+    nw4r::ut::Color realTextColor = textColor.withAlpha(opacity).utColor;
+    charWriter->SetTextColor(realTextColor);
+    charWriter->SetScale(scale.x, scale.y);
+    charWriter->SetEdge(textBorderWidth, textBorderColor.withAlpha(opacity).utColor);
+    // charWriter->m_colorRect.m_topLeft = realTextColor;
+    // charWriter->m_colorRect.m_topRight = realTextColor;
+    // charWriter->m_colorRect.m_bottomLeft = realTextColor;
+    // charWriter->m_colorRect.m_bottomRight = realTextColor;
+
+    charWriter->SetupGX();
+
+
     for (; *chars; chars++) {
         if (*chars == '\n') {
             newLine(true);
@@ -113,40 +206,26 @@ void TextPrinter::print(const char *chars) {
     }
 }
 
-
-
 void TextPrinter::newLine(bool fromPrintFn) {
     if (lineStart + maxWidth < charWriter->m_xPos) {
         maxWidth = charWriter->m_xPos - lineStart;
     }
-    charWriter->m_xPos = lineStart;
-    lastPadLocation = lineStart;
-    charWriter->m_yPos += (fromPrintFn && is2D) ? lineHeight : lineHeight;
+
+    float y = charWriter->GetCursorY();
+    charWriter->SetCursor(lineStart, y + lineHeight);
 }
 
-void TextPrinter::startBoundingBox() {
-    startY = charWriter->m_yPos;
-    lineStart = charWriter->m_xPos;
-    lastPadLocation = charWriter->m_xPos;
-    maxWidth = 0;
-}
-
-void TextPrinter::saveBoundingBox(Color color, float boxPadding) {
-    saveBoundingBox(color, COLOR_BLACK, COLOR_BLACK, 0, boxPadding);
-}
-
-void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highlightColor, int outlineWidth, float boxPadding) {
+void TextPrinter::renderBoundingBox() {
     if (lineStart + maxWidth < charWriter->m_xPos) {
         maxWidth = charWriter->m_xPos - lineStart;
     }
 
-    int multiplier = 1;// (is2D) ? 1 : -1;
     Rect * r = new Rect(
             0,
             1,
-            bgColor.gxColor,
-            (startY - boxPadding) * multiplier,
-            (charWriter->m_yPos + lineHeight + boxPadding) * multiplier,
+            boxBgColor.gxColor,
+            startY - boxPadding,
+            charWriter->m_yPos + lineHeight + boxPadding,
             lineStart - boxPadding,
             lineStart + maxWidth + boxPadding,
             is2D
@@ -156,28 +235,28 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
     if (renderPre) renderables.items.preFrame.push(static_cast<Drawable*>(r));
     else renderables.items.frame.push(static_cast<Drawable*>(r));
 
-    if (outlineWidth != 0) {
+    if (boxBorderWidth != 0) {
         RectOutline* ro = new RectOutline(
             0,
             1,
-            outlineColor.gxColor,
-            (startY - boxPadding) * multiplier,
-            (charWriter->m_yPos + lineHeight + boxPadding) * multiplier,
+            boxBorderColor.gxColor,
+            startY - boxPadding,
+            charWriter->m_yPos + lineHeight + boxPadding,
             lineStart - boxPadding,
             lineStart + maxWidth + boxPadding,
-            outlineWidth * 6,
+            boxBorderWidth * 6,
             is2D
         );
 
         RectOutline* roHighlight = new RectOutline(
             0,
             1,
-            highlightColor.gxColor,
-            (startY - boxPadding) * multiplier,
-            (charWriter->m_yPos + lineHeight + boxPadding) * multiplier,
+            boxHighlightColor.gxColor,
+            startY - boxPadding,
+            charWriter->m_yPos + lineHeight + boxPadding,
             lineStart - boxPadding,
             lineStart + maxWidth + boxPadding,
-            (int)(((float)outlineWidth / 2.0f) * 6.0f),
+            (int)(((float)boxBorderWidth / 2.0f) * 6.0f),
             is2D
         );
 
@@ -185,19 +264,8 @@ void TextPrinter::saveBoundingBox(Color bgColor, Color outlineColor, Color highl
         else renderables.items.frame.push(static_cast<Drawable*>(ro));
         if (renderPre) renderables.items.preFrame.push(static_cast<Drawable*>(roHighlight));
         else renderables.items.frame.push(static_cast<Drawable*>(roHighlight));
+
+        reset();
     }
 }
-
-void TextPrinter::padToWidth(float width) {
-    float newLocation = width + lastPadLocation;
-
-    if (charWriter->m_xPos < newLocation) {
-        charWriter->m_xPos = newLocation;
-        lastPadLocation = newLocation;
-    }
-    else {
-        lastPadLocation = charWriter->m_xPos;
-    }
-}
-
 }} // namespace

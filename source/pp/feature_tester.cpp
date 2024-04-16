@@ -38,16 +38,19 @@ void featureTester() {
         }
 
         /* Test out printing stuff. */
-        printer.setup(true);
-        ms::CharWriter& message = *(printer.charWriter);
-        message.SetCursor(200, 200, 0);
-        message.SetScale(1.f);
-        Color c = 0x00FFFFFF;
-        message.SetTextColor(c.utColor);
+        printer.bgColor = COLOR_BLACK;
+        printer.boxBorderColor = 0x888888FF;
+        printer.boxHighlightColor = COLOR_WHITE;
+        printer.boxPadding = 5;
+        pritner.boxBorderWidth = 6;
 
-        printer.startBoundingBox();
+        printer.setPosition(200, 200);
+        printer.setScale(Coord2DF(1.f, 1.f));
+        printer.setTextColor(0x00FFFFFF);
+
+        printer.begin();
         printer.print("Hello world.\n");
-        printer.saveBoundingBox(COLOR_BLACK, 0x888888FF, COLOR_WHITE, 6, 5);
+        printer.renderBoundingBox();
 
         /* Test out drawing a rect. */
         Graphics::renderables.items.frame.push(

@@ -5,6 +5,7 @@
 #include <ft/ft_manager.h>
 #include <gf/gf_scene.h>
 #include <gf/gf_heap_manager.h>
+#include <mu/menu.h>
 
 #include "pp/main.h"
 #include "pp/ui.h"
@@ -34,31 +35,6 @@ soGeneralWorkSimple* getWorkVars(const Fighter& fighter, WorkModuleVarType varTy
     const soWorkManageModuleImpl& workModule = *reinterpret_cast<const soWorkManageModuleImpl*>(fighter.m_moduleAccesser->getWorkManageModule());
     return reinterpret_cast<soGeneralWorkSimple*>(workModule.m_generalWorks[varType]);
 }
-/*
-void printRABools(const Fighter& fighter) {
-    const soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
-    u32 *raBools = raVars.m_flagWorks;
-    u32 boolNum;
-    u32 chunk;
-    char boolVal;
-
-    OSReport("RA bools (%x): ", raBools);
-    for (u32 i = 0; i < raVars.m_flagWorkSize; i++) {
-        chunk = raBools[i];
-        for (int j = 0; j < (sizeof(chunk)*8 - 1); j++) {
-            boolNum = (i*sizeof(chunk)) + (sizeof(chunk)-j);
-            boolVal = (chunk & (0x1 << j)) >> j;
-            OSReport("%d", boolVal);
-
-            if ((j % 8) == 7) {
-                OSReport(" ");
-            }
-        }
-        OSReport("  |  ");
-    }
-    OSReport("\n");
-}
-*/
 
 bool getRABit(const Fighter& fighter, u32 idx) {
     soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
@@ -84,40 +60,36 @@ bool getRABit(const Fighter& fighter, u32 idx) {
 
 void printMessage(char const* msg, float xPos, float yPos, Color color = COLOR_WHITE){
     OSReport("%s\n", msg);
-    printer.setup();
     printer.setTextColor(color);
     printer.renderPre = true;
-    ms::CharWriter& charWriter = *(printer.charWriter);
-    printer.lineHeight = punchMenu.lineHeight();
-    charWriter.SetScale(punchMenu.baseFontScale.x, punchMenu.baseFontScale.y);
-    charWriter.SetCursor(xPos, yPos, 0);
+    printer.boxBgColor = COLOR_TRANSPARENT_GREY;
+    printer.boxPadding = 10;
 
-    printer.startBoundingBox();
+    printer.lineHeight = punchMenu.lineHeight();
+    printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
+    printer.setPosition(xPos, yPos);
+
+    printer.begin();
     printer.print(msg);
-    printer.saveBoundingBox(COLOR_TRANSPARENT_GREY, 10);
+    printer.renderBoundingBox();
 }
 
 void printFighterState(PlayerData& playerData) {
     playerData.debugStr(strManipBuffer);
-    printer.setup();
     printer.renderPre = true;
+    printer.boxPadding = 10;
+    printer.boxBgColor = 0x00000000;
+    printer.boxHighlightColor = 0x00000000;
+    printer.boxBorderWidth = 0;
+    printer.opacity = 0xBB;
     printer.setTextColor(0xFFFFFFFF);
-    ms::CharWriter& charWriter = *(printer.charWriter);
-    printer.lineHeight = punchMenu.lineHeight();
-    charWriter.SetScale(
-        punchMenu.baseFontScale.x * punchMenu.fontScaleMultiplier,
-        punchMenu.baseFontScale.y * punchMenu.fontScaleMultiplier
-    );
-    
-    charWriter.SetEdge(1.0f, Color(0x000000FF).utColor);
-    charWriter.SetCursor(
-        50,
-        50
-    );
+    printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
+    printer.setTextBorder(0x000000FF, 1.0f);
+    printer.setPosition(50,50);
 
-    printer.startBoundingBox();
+    printer.begin();
     printer.print(strManipBuffer);
-    printer.saveBoundingBox(0, 10);
+    printer.renderBoundingBox();
 }
 
 inline bool needsInitializing() {
@@ -146,13 +118,15 @@ void updatePreFrame() {
     SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
     frameCounter += 1;
 
+    #ifdef PP_DEBUG_MEM
     if (frameCounter % 300 == 0) {
         gfHeapManager::dumpList();
     }
+    #endif
 
     if (sceneType == VS || sceneType == TRAINING_MODE_MMS) {
         if (!initialized && !needsInitializing()) {
-            #ifdef PP_INIT_DEBUG
+            #ifdef PP_DEBUG_INIT
             OSReport("Bailing out to start early\n");
             #endif
             startNormalDraw();
@@ -270,6 +244,10 @@ void debugWorkModule(const Fighter& fighter) {
 }
 
 
+enum GatherDataErrors {
+    NO_FT_ENTRY,
+    NO_FIGHTER,
+};
 void gatherData(u8 player) {
     if (player > 3) {
         OSReport("Asked to gather data for invalid player %d\n", player);
@@ -277,12 +255,23 @@ void gatherData(u8 player) {
     }
 
     int entryId = g_ftManager->getEntryIdFromIndex(player);
+    ftEntry* entry = g_ftEntryManager->getEntity(entryId);
     Fighter* fighter = g_ftManager->getFighter(entryId, 0);
+    if (entry == NULL) {
+        OSReport(g_strTypedError, "gatherData", NO_FT_ENTRY);
+        return;
+    }
+    if (fighter == NULL) {
+        OSReport(g_strTypedError, "gatherData", NO_FIGHTER);
+        return;
+    }
     u8 playerNumber = g_ftManager->getPlayerNo(entryId);
 
     if (needsInitializing()) {
         int opType = g_ftManager->getFighterOperationType(entryId);
+        #ifdef PP_DEBUG_INIT
         OSReport("Player %d op type: %d input: 0x%x\n", playerNumber, opType);
+        #endif
         if (opType != 0) {
             allPlayerData[playerNumber].showOnShieldAdvantage = false;
             allPlayerData[playerNumber].showOnHitAdvantage = false;
@@ -298,6 +287,10 @@ void gatherData(u8 player) {
     PlayerDataOnFrame& currentData = *playerData.current;
     PlayerDataOnFrame& prevData = *playerData.current;
     playerData.charId = (ftKind)(fighter->getFtKind());
+    playerData.taskId = fighter->m_taskId;
+    int muCharKind = muMenu::exchangeGmCharacterKind2MuStockchkind(entry->m_characterKind);
+    playerData.fighterName = muMenu::exchangeMuStockchkind2MuCharName(muCharKind);
+    playerData.entryId = entryId;
 
     allPlayerData[player].playerNumber = playerNumber;
     soModuleAccesser& modules = *fighter->m_moduleAccesser;
@@ -324,9 +317,17 @@ void gatherData(u8 player) {
         /* OSReport("Action number: %x\n", statusModule->action); */
         // never seems to work. strcpy(playerData.current->actionname, statusModule->getStatusName(), PP_ACTION_NAME_LEN);
         playerData.current->action = statusModule->getStatusKind();
+        playerData.current->actionName = statusModule->getStatusName(playerData.current->action);
+
+        #ifdef PP_FIGHTER_STATUS_DEBUG
+        OSReport("Status Name @ 0x%0X\n", playerData.current->actionName);
+        OSReport("Status Name:%s\n", playerData.current->actionName);
+        #endif
         if (statusModule->isCollisionAttackOccer()) {
             playerData.didConnectAttack = true;
         }
+
+        playerData.current->actionFrame = playerData.didActionChange() ? 0 : playerData.current->actionFrame + 1;
     }
 
     /* hitstun/shieldstun stuff comes from the work module. */
@@ -397,19 +398,17 @@ void gatherData(u8 player) {
             nw4r::g3d::CHR0* animationResource = animationData.m_anmChrRes->m_anmChrFile;
             // OSReport("Animation Resource: 0x%X\n", animationResource);
             if (animationResource == NULL) {
-                strncpy(playerData.current->subactionName, "UNKNOWN", PP_ACTION_NAME_LEN);
-                playerData.current->actionTotalFrames = -1;
+                playerData.current->subactionName = NULL;
             } else {
                 playerData.current->subactionFrame = motionModule->getFrame();
 
                 // do these ever differ, except by 1?
                 playerData.current->subactionTotalFrames = motionModule->getEndFrame();
-                playerData.current->actionTotalFrames = animationResource->m_animLength;
-
-                strncpy(playerData.current->subactionName, motionModule->getName(), PP_ACTION_NAME_LEN);
+                playerData.current->subactionName = motionModule->getName();
+                if (playerData.current->subactionName == NULL) {
+                    
+                }
             }
-
-            playerData.current->actionFrame = (u32)animationData.m_animFrame;
         }
 
     }
@@ -434,7 +433,7 @@ void resolveAttackTarget(u8 playerIdx) {
                 player.resetTargeting();
                 otherPlayer.resetTargeting();
 
-                OSReport("Setting on-hit Attacker %d -> Defender %d\n", player.playerNumber, otherPlayer.playerNumber);
+                OSReport("Set on-shld ATK %d -> DEF %d\n", player.playerNumber, otherPlayer.playerNumber);
                 player.attackTarget = &(otherPlayer);
                 player.attackingAction = player.current->action;
                 player.isAttackingFighter = true;
@@ -443,7 +442,7 @@ void resolveAttackTarget(u8 playerIdx) {
                 player.resetTargeting();
                 otherPlayer.resetTargeting();
 
-                OSReport("Setting on-shield Attacker %d -> Defender %d\n", player.playerNumber, otherPlayer.playerNumber);
+                OSReport("Set on-shld ATK %d -> DEF %d\n", player.playerNumber, otherPlayer.playerNumber);
                 player.attackTarget = &(otherPlayer);
                 player.attackingAction = player.current->action;
                 player.isAttackingShield = true;
@@ -473,7 +472,10 @@ void checkAttackTargetActionable(u8 playerNum) {
             /* > 30 frames is generally judge-able with a human eye anyway. */
             if (advantage > -30 && advantage < 30) {
                 if (player.showOnShieldAdvantage) {
+                    #ifdef PP_DEBUG_POPUP
                     OSReport("Displaying popup for attacker: %d\n", player.playerNumber);
+                    #endif
+
                     snprintf(strManipBuffer, PP_STR_MANIP_SIZE, "Advantage: %d\n", advantage);
                     OSReport(strManipBuffer);
                     Popup& popup = *(new Popup(strManipBuffer));

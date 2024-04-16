@@ -84,20 +84,18 @@ void Page::render(TextPrinter* printer, char* buffer) {
             return;
         }
 
-        if (!option->canModify) printer->setTextColor(applyAlpha(m.readOnlyColor, m.opacity));
+        if (!option->canModify) printer->setTextColor(m.readOnlyColor);
         else if (i == currentOption && isSelected && menu->paused) {
             saveHighlightRegion(printer);
-            printer->setTextColor(applyAlpha(m.selectedColor, m.opacity));
+            printer->setTextColor(m.selectedColor);
         }
         else if (i == currentOption && menu->paused) {
             saveHighlightRegion(printer);
-            printer->setTextColor(applyAlpha(m.highlightedColor, m.opacity));
+            printer->setTextColor(m.highlightedColor);
         }
         else {
-            printer->setTextColor(applyAlpha(m.defaultColor, m.opacity));
+            printer->setTextColor(m.defaultColor);
         }
-        printer->padToWidth(RENDER_X_SPACING / 5);
-
         option->render(printer, buffer);
     }
 }
@@ -139,8 +137,7 @@ void Menu::deselect() {
     if (getCurrentPage()->isSelected) {
         getCurrentPage()->deselect();
     } else {
-        visible = false;
-        paused = false;
+        this->toggle();
     }
 }
 
@@ -154,16 +151,28 @@ void Menu::down() {
     selected = getCurrentPage()->isFullySelected();
 }
 
-void Menu::modify(float amount) { getCurrentPage()->modify(amount); }
+void Menu::modify(float amount) { 
+    Page& currentPage = *getCurrentPage();
+    if (!this->selected && currentPage.getCurrentOption()->canModify) {
+        currentPage.select();
+        currentPage.modify(amount); 
+        currentPage.deselect();
+    } else {
+        currentPage.modify(amount);
+    }
+}
 
 void Menu::render(TextPrinter* printer, char* buffer) {
-    printer->startBoundingBox();
-    char internalBuf[128];
-    snprintf(internalBuf, 128, "Page 1 / %d", pages.size());
-    printer->printLine(buffer);
-    printer->printLine("");
+    printer->boxBgColor = bgColor;
+    printer->boxBorderColor = outlineColor;
+    printer->boxHighlightColor = highlightBoxColor;
+    printer->opacity = opacity;
+
+    printer->begin();
+    printer->printf("Page 1 / %d\n\n", pages.size());
     getCurrentPage()->render(printer, buffer);
-    printer->saveBoundingBox(0, 0x222222FF | (opacity & 0xFF), 0x000000FF | (opacity & 0xFF), 2, 10);
+
+    printer->renderBoundingBox();
 }
 
 void Menu::unpause() { paused = false; }
@@ -187,16 +196,14 @@ void FloatOption::modify(float amount) {
     else if (min != NUMERIC_DEFAULT && value < min) value = max;
 }
 void FloatOption::render(TextPrinter* printer, char* buffer) {
-    sprintf(buffer, "%s: %.3f", name, value);
-    printer->printLine(buffer);
+    printer->printf("%s: %.3f\n", name, value);
 }
 
 void BoolOption::modify(float amount) {
     value = !value;
 }
 void BoolOption::render(TextPrinter* printer, char* buffer) {
-    sprintf(buffer, "%s: %s", name, value ? "on" : "off");
-    printer->printLine(buffer);
+    printer->printf("%s: %s\n", name, value ? "on" : "off");
 }
 #pragma endregion
 
@@ -211,24 +218,21 @@ void ControlOption::deselect() {
     this->parent->menu->paused = true;
 }
 void ControlOption::render(TextPrinter* printer, char* buffer) {
-    sprintf(buffer, "%s", name);
-    printer->printLine(buffer);
+    printer->printf("%s\n", name);
 }
 #pragma endregion
 
 #pragma region StringOption
 void StringOption::modify(float amount) {}
 void StringOption::render(TextPrinter* printer, char* buffer) {
-    sprintf(buffer, "%s: %s", name, value);
-    printer->printLine(buffer);
+    printer->printf("%s: %s\n", name, value);
 }
 #pragma endregion
 
 void LabelOption::render(TextPrinter* printer, char* buffer) {
-    sprintf(buffer, "%s: %s", name, value);
     // Never disabled, it's a static label.
-    printer->setTextColor(applyAlpha(parent->menu->defaultColor, parent->menu->opacity));
-    printer->printLine(buffer);
+    printer->setTextColor(parent->menu->defaultColor);
+    printer->printf("%s: %s\n", name, value);
 }
 
 
@@ -237,8 +241,7 @@ void NamedIndexOption::modify(float amount) {}
 void NamedIndexOption::select() {}
 void NamedIndexOption::deselect() {}
 void NamedIndexOption::render(TextPrinter* printer, char* buffer) {
-    sprintf(buffer, "%s: %s", name, (0 <= index && index < arrayLength) ? nameArray[index] : " ");
-    printer->printLine(buffer);
+    printer->printf("%s: %s\n", name, (0 <= index && index < arrayLength) ? nameArray[index] : " ");
 }
 #pragma endregion
 
@@ -247,16 +250,15 @@ void HexObserver::modify(float amount) {}
 void HexObserver::render(TextPrinter* printer, char* buffer) {
     switch (size) {
     case CHAR:
-        sprintf(buffer, "%s: 0x%02x", name, *value);
+        printer->printf("%s: 0x%02x\n", name, *value);
         break;
     case SHORT:
-        sprintf(buffer, "%s: 0x%04x", name, *value);
+        printer->printf("%s: 0x%04x\n", name, *value);
         break;
     case INT:
-        sprintf(buffer, "%s: 0x%08x", name, *value);
+        printer->printf("%s: 0x%08x\n", name, *value);
         break;
     }
-    printer->printLine(buffer);
 }
 #pragma endregion
 
@@ -404,11 +406,9 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
 
     if (isSelected && currentOption == -1) {
         this->parent->saveHighlightRegion(printer);
-        printer->setTextColor(applyAlpha(m.highlightedColor, m.opacity));
+        printer->setTextColor(m.highlightedColor);
     }
-    sprintf(buffer, (collapsible) ? ((isSelected) ? "- %s" : "+ %s") : "%s:", name);
-
-    printer->printLine(buffer);
+    printer->printf((collapsible) ? ((isSelected) ? "- %s\n" : "+ %s\n") : "%s:\n", name);
 
     if ((collapsible && !collapsed) || !(collapsible)) {
         for (int i = 0; i < options.size(); i++) {
@@ -421,15 +421,15 @@ void SubpageOption::render(TextPrinter* printer, char* buffer) {
 
 
             if (!reinterpret_cast<OptionType*>(options[i])->canModify) {
-                printer->setTextColor(applyAlpha(m.readOnlyColor, m.opacity));
+                printer->setTextColor(m.readOnlyColor);
             } else if (i == currentOption && hasSelection && m.paused) {
                 parent->saveHighlightRegion(printer);
-                printer->setTextColor(applyAlpha(m.selectedColor, m.opacity));
+                printer->setTextColor(m.selectedColor);
             } else if (i == currentOption && m.paused) {
                 parent->saveHighlightRegion(printer);
-                printer->setTextColor(applyAlpha(m.highlightedColor, m.opacity));
+                printer->setTextColor(m.highlightedColor);
             } else {
-                printer->setTextColor(applyAlpha(m.defaultColor, m.opacity));
+                printer->setTextColor(m.defaultColor);
             }
 
             reinterpret_cast<OptionType*>(options[i])->render(printer, buffer);
