@@ -202,7 +202,11 @@ void updatePreFrame() {
                     | g_padStatus[2].btns.bits 
                     | g_padStatus[3].btns.bits
                 );
-                if (!(pad.btns.L == true || pad.btns.R == true)) {
+
+                /* If it's a VS Mode, only show if L/R are held. In training mode, 
+                 * auto-open the menu UNLESS L/R are held. 
+                 */
+                if ((sceneType == VS) == (pad.btns.L == true || pad.btns.R == true)) {
                     punchMenu.toggle();
                 }
             }
