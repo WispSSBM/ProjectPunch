@@ -18,6 +18,7 @@ void Popup::draw(TextPrinter& printer) {
         printer.setPosition(coords.x, coords.y);
         printer.setMinWidth(this->minWidth);
         printer.setScale(gPopupConfig.fontScale, gPopupConfig.fontScaleMult, gPopupConfig.lineHeightMult);
+        printer.opacity = 0xFF;
         printer.setTextColor(gPopupConfig.textColor);
         printer.boxPadding = gPopupConfig.popupPadding;
         printer.boxBgColor = gPopupConfig.bgColor;
