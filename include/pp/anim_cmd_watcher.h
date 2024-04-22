@@ -7,7 +7,7 @@
 
 #define ANIM_CMD_BASE_CTOR_ID 5
 
-namespace ProjectPunch {
+namespace PP {
 class AnimCmdWatcher: public soAnimCmdEventObserver {
 public:
     AnimCmdWatcher(PlayerData* pdata, Fighter* fighter): soAnimCmdEventObserver(ANIM_CMD_BASE_CTOR_ID) {

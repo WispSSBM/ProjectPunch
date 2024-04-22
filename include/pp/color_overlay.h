@@ -3,7 +3,7 @@
 #include "pp/playerdata.h"
 #include "pp/common.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 #define COLOR_OVERLAY_WAIT ((Color)0x00FF00BB)
 #define COLOR_OVERLAY_IASA ((Color)0xF5B642BB)

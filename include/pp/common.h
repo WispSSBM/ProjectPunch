@@ -25,7 +25,7 @@
 // Re-using brawl-defined strings to save memory
 extern "C" const char* g_strError;          // "ERROR STRING: %s\n"
 extern "C" const char* g_strTypedError;     // "%s Error: %d\n"
-namespace ProjectPunch {
+namespace PP {
 
     typedef struct Coord2D {
         Coord2D() {

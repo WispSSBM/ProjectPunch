@@ -31,7 +31,7 @@ namespace Syringe {
             (*ctor)();
         }
 
-        ProjectPunch::Entry::Init();
+        PP::Entry::Init();
         return &META;
     }
 
@@ -44,7 +44,7 @@ namespace Syringe {
             (*dtor)();
         }
 		
-		ProjectPunch::Entry::Destroy();
+		PP::Entry::Destroy();
     }
 
     void _unresolved(void)

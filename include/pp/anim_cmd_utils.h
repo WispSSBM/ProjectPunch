@@ -2,7 +2,7 @@
 
 #include <so/anim_cmd/so_anim_cmd.h>
 
-namespace ProjectPunch {
+namespace PP {
 
 int snprint_anim_cmd(char* buffer, size_t len, const soAnimCmd& animCmd);
 bool isLastAnimCmd(const soAnimCmd& cmd); 

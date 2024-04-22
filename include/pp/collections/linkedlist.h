@@ -5,7 +5,7 @@
 
 #include <stl/cstddef>
 
-namespace ProjectPunch {
+namespace PP {
 namespace Collections {
 
 typedef struct listnode {

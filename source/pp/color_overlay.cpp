@@ -9,7 +9,7 @@
 #define PP_DEBUG(...)
 #endif
 
-namespace ProjectPunch {
+namespace PP {
 
 void processOverlays(const PlayerData& player) {
     Fighter& fighter = *g_ftManager->getFighter(player.entryId, 0);

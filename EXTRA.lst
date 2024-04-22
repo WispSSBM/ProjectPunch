@@ -3,7 +3,7 @@
 //  - Rels: "RelID,RelSectionId,offset:symbol_name"
 //  - Global: "address:symbol_name"
 
-804f67b0:g_padStatus__Q212ProjectPunch5Input
+804f67b0:g_padStatus__Q22PP5Input
 
 8084bd74:unableCancelStatus__14ftCancelModuleImplFv
 8084bd6c:isEnableCancel__14ftCancelModuleImplFv

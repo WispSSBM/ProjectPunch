@@ -2,7 +2,7 @@
 
 #include "pp/common.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 #define CHECK_MENU_PAUSED_HOOK_LOC 0x8002e5b0
 #define CHECK_MENU_PAUSED_HOOK_LOC_RETURN 0x8002e5b4

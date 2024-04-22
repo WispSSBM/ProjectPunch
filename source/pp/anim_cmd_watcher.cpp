@@ -9,7 +9,7 @@
 #include "pp/anim_cmd_utils.h"
 
 
-namespace ProjectPunch {
+namespace PP {
 enum InterpreterId {
     INTERPRETER_ID_ACTION_MAIN,
     INTERPRETER_ID_SUBACTION_MAIN

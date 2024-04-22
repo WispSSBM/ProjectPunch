@@ -205,7 +205,7 @@
 #define ACTION_FUWAFUWA 0x11E
 #pragma endregion
 
-namespace ProjectPunch {
+namespace PP {
 bool isEATBitExclusion(ftKind charKind, int actionId);
 bool isAttackingAction(u16 action);
 bool isDefinitelyActionable(u16 action);

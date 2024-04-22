@@ -1,5 +1,5 @@
 #pragma once
-namespace ProjectPunch {
+namespace PP {
 
 void featureTester();
 

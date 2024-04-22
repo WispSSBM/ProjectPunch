@@ -2,7 +2,7 @@
 
 #include "pp/collections/linkedlist.h"
 
-namespace ProjectPunch {
+namespace PP {
 namespace Collections {
 void testLinkedList() {
     linkedlist<int>* ll = new linkedlist<int>();

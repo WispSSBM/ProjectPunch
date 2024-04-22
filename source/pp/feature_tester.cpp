@@ -12,9 +12,9 @@
 #include "pp/popup.h"
 #include "pp/input/pad.h"
 
-namespace ProjectPunch {
+namespace PP {
 Graphics::TextPrinter printer = Graphics::TextPrinter();
-ProjectPunch::Popup* popup = 0;
+PP::Popup* popup = 0;
 
 
 void featureTester() {
@@ -31,8 +31,8 @@ void featureTester() {
 
         }
 
-        if (ProjectPunch::Input::g_padStatus[0].btns.A && popup == NULL) {
-            popup = new ProjectPunch::Popup("A press.\n");
+        if (PP::Input::g_padStatus[0].btns.A && popup == NULL) {
+            popup = new PP::Popup("A press.\n");
             popup->coords.x = 100;
             popup->coords.y = 100;
         }

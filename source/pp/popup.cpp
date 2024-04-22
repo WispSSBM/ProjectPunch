@@ -2,10 +2,10 @@
 
 extern u32 frameCounter;
 
-namespace ProjectPunch {
+namespace PP {
 
-using namespace ProjectPunch::Graphics;
-using namespace ProjectPunch::Collections;
+using namespace PP::Graphics;
+using namespace PP::Collections;
 
 PopupConfig gPopupConfig = PopupConfig();
 

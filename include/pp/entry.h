@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ProjectPunch {
+namespace PP {
     namespace Entry {
         void Init();
         void Destroy();

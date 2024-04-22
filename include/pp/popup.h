@@ -5,7 +5,7 @@
 #include "pp/graphics/text_printer.h" 
 #include "pp/common.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 class Popup {
     public:

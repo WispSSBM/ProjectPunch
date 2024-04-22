@@ -1,6 +1,6 @@
 #include "pp/actions.h"
 
-namespace ProjectPunch {
+namespace PP {
 bool isAttackingAction(u16 action)
 {
     if (action >= ACTION_JAB && action <= ACTION_AERIALATTACK)

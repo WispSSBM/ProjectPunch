@@ -6,8 +6,8 @@
 
 extern void pauseHookReturn();
 
-using namespace ProjectPunch;
-namespace ProjectPunch {
+using namespace PP;
+namespace PP {
 namespace Entry {
 
 asm void pauseHook() {
@@ -21,7 +21,7 @@ asm void pauseHook() {
 void foo() {}
 void Init() {
     //SyringeCore::syInlineHook(0x800177B0, (void*)ProjectPunch::featureTester);
-    SyringeCore::syInlineHook(0x800177B0, (void*)ProjectPunch::updatePreFrame);
+    SyringeCore::syInlineHook(0x800177B0, (void*)PP::updatePreFrame);
     SyringeCore::sySimpleHook(0x8002e5b0, pauseHook);
 }
 

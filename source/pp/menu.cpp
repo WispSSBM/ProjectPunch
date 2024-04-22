@@ -7,7 +7,7 @@
 #include <OS/OSError.h>
 
 
-namespace ProjectPunch {
+namespace PP {
 
 #pragma region Page
 void Page::addOption(OptionType* option) {

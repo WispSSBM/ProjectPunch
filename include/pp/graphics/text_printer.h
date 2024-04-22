@@ -11,7 +11,7 @@
 
 #include "pp/common.h"
 
-namespace ProjectPunch {
+namespace PP {
 namespace Graphics {
 
 struct TextPrinter {

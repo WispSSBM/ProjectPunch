@@ -5,7 +5,7 @@
 /********/
 // Universal Externs. This is imported by common.h so it is usable throughout.
 
-namespace ProjectPunch {
+namespace PP {
 /* TODO: Look into using the game's native frame counter. */
 u32 frameCounter = 0;
 char strManipBuffer[PP_STR_MANIP_SIZE]; // char(*)[PP_STR_MANIP_SIZE];

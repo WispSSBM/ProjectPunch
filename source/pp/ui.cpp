@@ -10,7 +10,7 @@
 #include "pp/menu.h"
 #include "pp/playerdata.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 using namespace Input;
 

@@ -21,7 +21,7 @@
 #define PP_DEBUG(...)
 #endif
 
-namespace ProjectPunch {
+namespace PP {
 namespace Graphics {
 
 TextPrinter printer;

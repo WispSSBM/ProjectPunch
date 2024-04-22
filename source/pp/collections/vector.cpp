@@ -4,7 +4,7 @@
 
 #include "pp/collections/vector.h"
 
-namespace ProjectPunch {
+namespace PP {
 namespace Collections {
 
 

@@ -5,7 +5,7 @@
 #include "pp/actions.h"
 #include "pp/common.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 bool startsWith(const char* testStr, const char* prefix);
 

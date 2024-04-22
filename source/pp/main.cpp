@@ -18,11 +18,11 @@
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
 
-using namespace ProjectPunch::Graphics;
-using namespace ProjectPunch::Input;
-using namespace ProjectPunch::Collections;
+using namespace PP::Graphics;
+using namespace PP::Input;
+using namespace PP::Collections;
 
-namespace ProjectPunch {
+namespace PP {
 bool initialized = false;
 
 

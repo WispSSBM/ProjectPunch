@@ -7,7 +7,7 @@
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 extern u32 frameCounter;
 PlayerData* allPlayerData = new PlayerData[PP_MAX_PLAYERS];

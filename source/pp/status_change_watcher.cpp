@@ -4,7 +4,7 @@
 #include "pp/actions.h"
 
 
-namespace ProjectPunch {
+namespace PP {
 
 void StatusChangeWatcher::notifyEventChangeStatus(
     int statusKind, 

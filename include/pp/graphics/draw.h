@@ -8,7 +8,7 @@
 #include <GX/GXTypes.h>
 #include <gf/gf_draw.h>
 
-namespace ProjectPunch {
+namespace PP {
 namespace Graphics {
 
 struct Position3D {

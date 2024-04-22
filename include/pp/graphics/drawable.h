@@ -18,9 +18,9 @@
 
 #define LINE_SCALE 21
 
-namespace ProjectPunch {
+namespace PP {
 namespace Graphics {
-using namespace ProjectPunch::Collections;
+using namespace PP::Collections;
 
 struct Drawable {
     Drawable() {

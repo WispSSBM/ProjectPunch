@@ -15,7 +15,7 @@ implementations should be merged.
 #include <types.h>
 #include <cstddef>
 
-namespace ProjectPunch {
+namespace PP {
 namespace Collections {
 
 // the most scuffed vector implementation of all time

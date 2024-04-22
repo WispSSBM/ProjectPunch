@@ -2,7 +2,7 @@
 
 #include <types.h>
 
-namespace ProjectPunch {
+namespace PP {
 namespace Input {
 
 union PadButtons {

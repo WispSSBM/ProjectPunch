@@ -10,7 +10,7 @@ if (sprReturn < (len - written)) { buffer += sprReturn; written += sprReturn; }
 sprReturn = snprintf(buffer, len, fmt, __VA_ARGS__); \
 if (sprReturn < (len - written)) { buffer += sprReturn; written += sprReturn; }
 
-namespace ProjectPunch {
+namespace PP {
 
 class AnimCmdVariableArg {
 public:

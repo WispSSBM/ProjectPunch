@@ -12,7 +12,7 @@
 
 #include <OS/OSError.h>
 
-namespace ProjectPunch {
+namespace PP {
 namespace Graphics {
 
 

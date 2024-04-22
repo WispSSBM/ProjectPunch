@@ -8,7 +8,7 @@
 #include "pp/popup.h"
 #include "pp/playerdata.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 #define PP_MENU_INPUT_SPEED 10
 class PpunchMenu : public Menu {

@@ -7,7 +7,7 @@
 #include "pp/common.h"
 #include "pp/playerdata.h"
 
-namespace ProjectPunch {
+namespace PP {
 
 #define STATUS_EVENT_CTOR_ID 0x4
 
