@@ -34,8 +34,7 @@ PlayerData::PlayerData() {
     maxShieldstun = 0;
     attackTarget = NULL;
     becameActionableOnFrame = -1;
-    lastAttackEndedOnFrame = -1;
-    attackingAction = -1;
+    lastAttackEndedOnFrame = -1; // currently unused.
     prev = new PlayerDataOnFrame();
     current = new PlayerDataOnFrame();
 
@@ -48,6 +47,10 @@ PlayerData::PlayerData() {
     didConnectAttack = false;
     isAttackingShield = false;
     isAttackingFighter = false;
+
+    didActionChange = false;
+    occupiedActionableStateThisFrame = false;
+
     showOnHitAdvantage = false;
     showOnShieldAdvantage = false;
     showFighterState = false;
@@ -89,7 +92,6 @@ PlayerDataOnFrame::PlayerDataOnFrame() {
         subactionTotalFrames = 0;
 
         lowRABits = 0;
-        actionFrame = 0;
         hitstun = 0;
         shieldstun = 0;
 
@@ -99,7 +101,6 @@ PlayerDataOnFrame::PlayerDataOnFrame() {
 }
 
 void PlayerData::resetTargeting() {
-    attackingAction = -1;
     attackTarget = NULL;
     becameActionableOnFrame = -1;
     advantageBonusCounter = 0;
@@ -118,14 +119,14 @@ int PlayerData::debugStr(char* buffer) {
     "  Action:    %s(0x%X)\n"
     "  Subaction: %s(0x%X)       Frames: %d/%d\n"
     "  Hitstun: %d/%d        Shieldstun: %d/%d        Shielding: %c\n"
-    "  Airborne: %c          ModCancel: %c\n"
+    "  Frame: %d             Airborne: %c          ModCancel: %c\n"
     "  RA: %s\n"
     ,
     playerNumber, this->fighterName,
     actionName(f.action), f.action,
     f.subactionName, f.subaction, (int)f.subactionFrame, (int)f.subactionTotalFrames,
     f.hitstun, maxHitstun, f.shieldstun, maxShieldstun, (f.isShielding() ? 'T' : 'F'),
-    (f.isAirborne ? 'T' : 'F'), (f.canCancel ? 'T' : 'F'),
+    frameCounter, (f.isAirborne ? 'T' : 'F'), (f.canCancel ? 'T' : 'F'),
     raBits
     );
 }
@@ -163,11 +164,11 @@ const char* strAttackActionable = "ATKR %d now actionable via ";
 bool PlayerData::resolvePlayerActionable() {
     PlayerData& player = *this;
     int currentAction = player.current->action;
-    if (player.becameActionableOnFrame != -1) {
+    if (player.becameActionableOnFrame != (u32)(-1)) {
         return true; // already became actionable..
     }
 
-    if (isDefinitelyActionable(currentAction)) {
+    if (occupiedActionableStateThisFrame) {
         OSReport(strAttackActionable, player.playerNumber);
         OSReport("action\n  - Prev Act/Subact: %s/%s\n  - Cur Act/Subact: %s/%s\n",
             actionName(player.prev->action), player.prev->subactionStr(),
@@ -184,19 +185,14 @@ bool PlayerData::resolvePlayerActionable() {
         return true;
     }
 
-    if (player.current->getLowRABit(RA_BIT_ENABLE_ACTION_TRANSITION) && !isEATBitExclusion(player.charId, player.current->action)) {
+    // Airborne IASA doesn't imply actionability, just that you'll
+    // get an autocancel. Technically there are also iasa frames
+    // in the air, that are separate from the AC window,
+    // but most people conflate the two.
+    if (player.inIasa() && !(player.current->isAirborne)) {
         OSReport(strAttackActionable, player.playerNumber);
-        OSReport("via RABit 0x10\n");
+        OSReport("via IASA\n");
         player.becameActionableOnFrame = frameCounter + 1;
-        return true;
-    }
-
-    if ((int)player.subactionFrame() == 0 
-        && isAttackingAction(player.action())
-        && player.didActionChange()
-        && player.action() != ACTION_RAPIDJAB) {
-            OSReport(strAttackActionable, player.playerNumber);
-            OSReport("via starting new attack %s\n", actionName(currentAction));
         return true;
     }
 
@@ -221,14 +217,14 @@ bool PlayerData::resolveTargetActionable() {
         return true; // already happened.
     }
 
-    if (isDefinitelyActionable(target.current->action)) {
-            OSReport(strDefActionable, target.playerNumber);
-            OSReport("action\n\t- Prev Act/Sub: %s/%s\n\t- Cur Act/Sub: %s/%s\n", 
-                actionName(target.prev->action), target.prev->subactionName,
-                actionName(target.current->action), target.current->subactionName
-            );
-            target.becameActionableOnFrame = frameCounter;
-            return true;
+    if (target.occupiedActionableStateThisFrame) {
+        OSReport(strDefActionable, target.playerNumber);
+        OSReport("action\n\t- Prev Act/Sub: %s/%s\n\t- Cur Act/Sub: %s/%s\n",
+            actionName(target.prev->action), target.prev->subactionName,
+            actionName(target.current->action), target.current->subactionName
+        );
+        target.becameActionableOnFrame = frameCounter;
+        return true;
     }
 
     if (target.current->hitstun == 0 && target.current->shieldstun == 0) {
@@ -237,13 +233,6 @@ bool PlayerData::resolveTargetActionable() {
         target.becameActionableOnFrame = frameCounter;
         return true;
 
-    }
-
-    if (target.current->getLowRABit(RA_BIT_ENABLE_ACTION_TRANSITION)) {
-        OSReport(strDefActionable, target.playerNumber);
-        OSReport("RA-Bit 0x10\n");
-        target.becameActionableOnFrame = frameCounter + 1;
-        return true;
     }
 
     return false;
@@ -256,10 +245,6 @@ u16 PlayerData::action() const {
 
 const char* PlayerData::actionStr() const {
     return actionName(this->action());
-}
-
-u16 PlayerData::actionFrame() const {
-    return current->actionFrame;
 }
 
 u32 PlayerData::raLowBits() const {
@@ -294,7 +279,7 @@ float PlayerData::subactionTotalFrames() const {
 #pragma region predicates
 
 bool PlayerData::didEnterShield() const {
-    return (didActionChange() && this->current->action == ACTION_GUARDON);
+    return (didActionChange && this->current->action == ACTION_GUARDON);
 }
 
 bool PlayerData::didReceiveHitstun() const {
@@ -305,21 +290,11 @@ bool PlayerData::didReceiveShieldstun() const {
         return current->shieldstun != 0 && (current->shieldstun > prev->shieldstun);
 }
 
-bool PlayerData::didBecomeActionable() const {
-    return true;
-}
-
-bool PlayerData::didEnableCancel() const {
+bool PlayerData::canCancel() const {
     return current->canCancel && !(prev->canCancel);
 }
 
-bool PlayerData::didActionChange() const {
-    return (
-        (current->action != prev->action)
-        || current->actionFrame != (prev->actionFrame + 1)
-    );
-}
-
+/* TODO: Maybe use event system for this.*/
 bool PlayerData::didSubactionChange() const {
     return (prev->subaction != current->subaction);
 }
@@ -360,6 +335,8 @@ void PlayerData::prepareNextFrame() {
     current->action = prev->action;
     current->actionName = prev->actionName;
     current->isAirborne = prev->isAirborne;
+    didActionChange = false;
+    occupiedActionableStateThisFrame = isDefinitelyActionable(current->action);
 }
 
 void PlayerData::setAction(u16 newAction) {
@@ -367,6 +344,10 @@ void PlayerData::setAction(u16 newAction) {
     current->actionName = actionName(newAction);
     current->canCancel = false;
     current->isAirborne = false;
+    didActionChange = true;
+    if (isDefinitelyActionable(newAction)) {
+        occupiedActionableStateThisFrame = true;
+    }
     memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
 
 }

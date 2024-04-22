@@ -38,7 +38,7 @@ void processOverlays(const PlayerData& player) {
 }
 
 bool processActionableOverlay(const PlayerData& player, soColorBlendModule& cbm) {
-    if(player.inActionableState() || player.inIasa() || player.didEnableCancel()) {
+    if(player.occupiedActionableStateThisFrame || player.inIasa() || player.canCancel()) {
         cbm.setSubColor(COLOR_OVERLAY_WAIT.gxColor, 1);
         return true;
     }

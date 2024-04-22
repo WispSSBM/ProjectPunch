@@ -55,7 +55,6 @@ struct StandardOption : public OptionType {
     virtual void up() { };
     virtual void down() { };
     virtual void setParentPage(Page* p) { 
-        OSReport("StandardOption setParentPage() this = 0x%0X\n", this);
         this->parent = p; 
     }
     virtual ~StandardOption() {}

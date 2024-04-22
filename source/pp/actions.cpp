@@ -77,6 +77,7 @@ bool isDefinitelyActionable(u16 action) {
     case ACTION_SQUAT:;
     case ACTION_SQUATWAIT:;
     case ACTION_FALL:;
+    case 0x122:; //Knuckles/Sanic spindash jump 
     case ACTION_JUMPSQUAT:
         return true;
     }

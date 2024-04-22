@@ -96,6 +96,9 @@ void printFighterState(PlayerData& playerData) {
     printer.renderBoundingBox();
 }
 
+/*
+ * This basically waits until all fighters have fully spawned in and triggers when GO! is displayed.
+ */
 bool needsInitializing() {
     if (initialized) return false;
     int fighters = g_ftManager->getEntryCount();
@@ -113,14 +116,13 @@ bool needsInitializing() {
     return true;
 }
 
-// calls our function
+// main entry point.
 void updatePreFrame() {
     renderables.renderPre();
 
-    // todo use gfSceneManager to do this, but both training and normal fights are scMelee, so something else
+    // TODO: tried to use gfSceneManager to do this, but both training and normal fights are scMelee, so something else
     // is needed to distinguish them.
     SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
-    frameCounter += 1;
 
     #ifdef PP_DEBUG_MEM
     if (frameCounter % 300 == 0) {
@@ -128,14 +130,26 @@ void updatePreFrame() {
     }
     #endif
 
+    // Do nothing if not in a game.
     if (sceneType == VS || sceneType == TRAINING_MODE_MMS) {
-        if (!initialized && !needsInitializing()) {
-            #ifdef PP_DEBUG_INIT
-            OSReport("Bailing out to start early\n");
-            #endif
-            startNormalDraw();
-            return;
+        if (!initialized) {
+            if (!needsInitializing()) {
+                #ifdef PP_DEBUG_INIT
+                OSReport("Bailing out to start early\n");
+                #endif
+                startNormalDraw();
+                return;
+            } else {
+                // Don't let the frame counter count up forever.
+                // In one game it is highly unlikely to overflow a u32.
+                // There are ~200k frames in an hour, and a u32's range is
+                // over 4 billion. We do this here instead of at the end with the
+                // punch menu because the punch menu wants to be setup with gathered data,
+                // whereas the framecounter wants to be set before anything happens.
+                frameCounter = 0;
+            }
         }
+        frameCounter += 1;
 
         int fighterCount;
         fighterCount = g_ftManager->getEntryCount();
@@ -156,7 +170,7 @@ void updatePreFrame() {
         for(idx = 0; idx < fighterCount; idx++) {
             PlayerData& playerData = allPlayerData[idx];
 
-            if (playerData.didActionChange() && isAttackingAction(playerData.action())) {
+            if (playerData.didActionChange && playerData.occupiedActionableStateThisFrame) {
                 playerData.didStartAttack = true;
             }
 
@@ -308,7 +322,7 @@ void gatherData(u8 player) {
     playerData.fighterName = muMenu::exchangeMuStockchkind2MuCharName(muCharKind);
     playerData.entryId = entryId;
 
-    allPlayerData[player].playerNumber = playerNumber;
+    allPlayerData[player].playerNumber = player+1;
     soModuleAccesser& modules = *fighter->m_moduleAccesser;
 
     soWorkManageModuleImpl* workModule = dynamic_cast<soWorkManageModuleImpl*>(modules.getWorkManageModule());
@@ -333,20 +347,7 @@ void gatherData(u8 player) {
     #endif
 
     if (statusModule != NULL) {
-        /* OSReport("Action number: %x\n", statusModule->action); */
-        // never seems to work. strcpy(playerData.current->actionname, statusModule->getStatusName(), PP_ACTION_NAME_LEN);
-
-        // 
-
-        #ifdef PP_FIGHTER_STATUS_DEBUG
-        OSReport("Status Name @ 0x%0X\n", playerData.current->actionName);
-        OSReport("Status Name:%s\n", playerData.current->actionName);
-        #endif
-        if (statusModule->isCollisionAttackOccer()) {
-            playerData.didConnectAttack = true;
-        }
-
-        playerData.current->actionFrame = playerData.didActionChange() ? 0 : playerData.current->actionFrame + 1;
+        /* Status module stuff is mostly collected via the StatusChangeWatcher using the event system. */
     }
 
     /* hitstun/shieldstun stuff comes from the work module. */
@@ -363,8 +364,8 @@ void gatherData(u8 player) {
         const float* LAFloatArr = laVars.m_floatWorks;
         const u32* LABoolArr = laVars.m_flagWorks;
 
+        #pragma region shieldstun
         // float shieldValue = LAFloatArr[0x3];
-
         if (currentData.action == ACTION_GUARDDAMAGE) {
             // This also tracks the lag on shield release frames, which
             // we don't care about for actionability. So we don't want to get this
@@ -372,6 +373,7 @@ void gatherData(u8 player) {
             currentData.shieldstun = RABasicsArr[0x5];
         }
         if (currentData.shieldstun != 0) {
+            /* TODO: Rework with event system */
             if (playerData.didReceiveShieldstun()) {
                 playerData.maxShieldstun = currentData.shieldstun;
                 playerData.becameActionableOnFrame = -1;
@@ -386,11 +388,14 @@ void gatherData(u8 player) {
         } else {
             playerData.maxShieldstun = 0;
         }
+        #pragma endregion
 
+        #pragma region hitstun
         int remainingHitstun = LABasicsArr[0x38];
         playerData.current->hitstun = remainingHitstun;
 
         if (remainingHitstun != 0) {
+            /* TODO: Rework with event system */
             if (playerData.didReceiveHitstun()) {
                 playerData.maxHitstun = remainingHitstun;
                 playerData.becameActionableOnFrame = -1;
@@ -399,16 +404,13 @@ void gatherData(u8 player) {
         } else {
             playerData.maxHitstun = 0;
         }
+        #pragma endregion
 
-        if (playerData.playerNumber == 0) {
-            //OSReport("[Action 0x%x %s] ", currentData.action, actionName(currentData.action));
-            // printRABools(*workModule);
-        }
         currentData.lowRABits = RABoolArr[0];
     }
 
 
-    /* subaction stuff */
+    #pragma region subaction
     if (motionModule != NULL) {
         // TODO: Find a fn that returns this.
         soAnimChr animationData = motionModule->m_mainAnim;
@@ -426,14 +428,17 @@ void gatherData(u8 player) {
                 playerData.current->subactionName = motionModule->getName();
             }
         }
-
     }
+    #pragma endregion
 }
 
 void resolveAttackTarget(u8 playerIdx) {
     PlayerData& player = allPlayerData[playerIdx];
-    // False most of the time, so this isn't as slow as it looks.
-    if (player.didConnectAttack != false) {
+    // False most of the time, so this isn't as slow as it looks. If either of the
+    // "isAttackingBlah" flags are true, this already passed so we skip both for speed
+    // and so that we don't get into a situation where a target thinks he's being attacked
+    // but the player hit something else and moved on.
+    if (!(player.isAttackingFighter || player.isAttackingShield)) {
         for (char otherIdx = 0; otherIdx < PP_MAX_PLAYERS; otherIdx++) {
             if (playerIdx == otherIdx) {
                 continue;
@@ -444,9 +449,8 @@ void resolveAttackTarget(u8 playerIdx) {
                 player.resetTargeting();
                 otherPlayer.resetTargeting();
 
-                OSReport("Set on-shld ATK %d -> DEF %d\n", player.playerNumber, otherPlayer.playerNumber);
+                OSReport("Set on-hit ATK %d -> DEF %d\n", player.playerNumber, otherPlayer.playerNumber);
                 player.attackTarget = &(otherPlayer);
-                player.attackingAction = player.current->action;
                 player.isAttackingFighter = true;
                 break;
             } else if (player.showOnShieldAdvantage && otherPlayer.didReceiveShieldstun()) {
@@ -455,7 +459,6 @@ void resolveAttackTarget(u8 playerIdx) {
 
                 OSReport("Set on-shld ATK %d -> DEF %d\n", player.playerNumber, otherPlayer.playerNumber);
                 player.attackTarget = &(otherPlayer);
-                player.attackingAction = player.current->action;
                 player.isAttackingShield = true;
                 break;
 
@@ -481,7 +484,7 @@ void checkAttackTargetActionable(u8 playerNum) {
 
             /* Lots of weird edge cases where the ending doesn't register, such as dying or teching. */
             /* > 30 frames is generally judge-able with a human eye anyway. */
-            if (advantage > -30 && advantage < 30) {
+            if (advantage > -50 && advantage < 50) {
                 if (player.showOnShieldAdvantage) {
                     #ifdef PP_DEBUG_POPUP
                     OSReport("Displaying popup for attacker: %d\n", player.playerNumber);
