@@ -64,6 +64,9 @@ void PpunchMenu::init() {
         newPage.addOption(new BoolOption("Popup: On-Shield Advantage", player.showOnShieldAdvantage));
         newPage.addOption(new BoolOption("Popup: On-Hit Advantage", player.showOnHitAdvantage));
         newPage.addOption(new BoolOption("Show Fighter State", player.showFighterState));
+        newPage.addOption(new BoolOption("Overlay: Actionable", player.enableActionableOverlay));
+        newPage.addOption(new BoolOption("Overlay: Dash/Run", player.enableDashOverlay));
+        newPage.addOption(new BoolOption("Overlay: IASA", player.enableIasaOverlay));
         newPage.addOption(new SpacerOption());
 
         /*
@@ -80,6 +83,7 @@ void PpunchMenu::init() {
         addPage(&newPage);
     }
 
+    #ifdef PP_MENU_DISPLAY_DEBUG
     // TODO: Reimplement scrolling. This is w/e for now.
     Page& displayOptsPage = *(new Page(this));
     snprintf(displayOptsPage.title, 256, "Display Options");
@@ -118,6 +122,7 @@ void PpunchMenu::init() {
     highlightBoxSubP.addOption(new IntOption<u8>("A", highlightBoxColor.a, 0, 255, true, true));
     displayOptsPage.addOption(&highlightBoxSubP);
     addPage(&displayOptsPage);
+    #endif
 
 
     currentPageIdx = 0;

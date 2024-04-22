@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "pp/playerdata.h"
+#include "pp/anim_cmd_watcher.h"
+#include "pp/status_change_watcher.h"
 
 namespace ProjectPunch {
 
@@ -51,10 +53,28 @@ PlayerData::PlayerData() {
     showFighterState = false;
     showActOutOfLag = false;
 
+    enableActionableOverlay = false;
+    enableDashOverlay = false;
+    enableIasaOverlay = false;
+
+    animCmdWatcher = NULL;
+    statusChangeWatcher = NULL;
+    
+
     #ifdef PP_DEBUG_PLAYERDATA_LOCATION
     OSReport("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
     #endif PP_DEBUG_PLAYERDATA_LOCATION
 };
+
+void PlayerData::cleanup() {
+    if (animCmdWatcher != NULL) {
+        delete animCmdWatcher;
+    }
+
+    if (statusChangeWatcher != NULL) {
+        delete statusChangeWatcher;
+    }
+}
 
 PlayerDataOnFrame::PlayerDataOnFrame() {
         #ifdef PP_DEBUG_PLAYERDATA_LOCATION
@@ -75,6 +95,7 @@ PlayerDataOnFrame::PlayerDataOnFrame() {
 
         canCancel = false;
         didConnectAttack = false;
+        isAirborne = false;
 }
 
 void PlayerData::resetTargeting() {
@@ -97,12 +118,14 @@ int PlayerData::debugStr(char* buffer) {
     "  Action:    %s(0x%X)\n"
     "  Subaction: %s(0x%X)       Frames: %d/%d\n"
     "  Hitstun: %d/%d        Shieldstun: %d/%d        Shielding: %c\n"
+    "  Airborne: %c          ModCancel: %c\n"
     "  RA: %s\n"
     ,
     playerNumber, this->fighterName,
     actionName(f.action), f.action,
     f.subactionName, f.subaction, (int)f.subactionFrame, (int)f.subactionTotalFrames,
     f.hitstun, maxHitstun, f.shieldstun, maxShieldstun, (f.isShielding() ? 'T' : 'F'),
+    (f.isAirborne ? 'T' : 'F'), (f.canCancel ? 'T' : 'F'),
     raBits
     );
 }
@@ -112,7 +135,7 @@ int PlayerData::writeLowRABoolStr(char* buffer) const {
     char boolVal;
     char* start = buffer;
 
-    for (int j = 0; j < 31; j++) { // one int's worth of data
+    for (int j = 0; j < 32; j++) { // one int's worth of data
         *(buffer++) = ((this->current->lowRABits & (0x1 << j)) >> j) == 1 ? '1' : '0';
 
         if ((j % 8) == 7 && j != 31) {
@@ -139,15 +162,16 @@ bool PlayerDataOnFrame::getLowRABit(u32 idx) const {
 const char* strAttackActionable = "ATKR %d now actionable via ";
 bool PlayerData::resolvePlayerActionable() {
     PlayerData& player = *this;
+    int currentAction = player.current->action;
     if (player.becameActionableOnFrame != -1) {
         return true; // already became actionable..
     }
 
-    if (isDefinitelyActionable(player.current->action)) {
+    if (isDefinitelyActionable(currentAction)) {
         OSReport(strAttackActionable, player.playerNumber);
         OSReport("action\n  - Prev Act/Subact: %s/%s\n  - Cur Act/Subact: %s/%s\n",
-            actionName(player.prev->action), player.prev->subactionName,
-            actionName(player.current->action), player.current->subactionName
+            actionName(player.prev->action), player.prev->subactionStr(),
+            actionName(currentAction), player.current->subactionStr()
         );
         player.becameActionableOnFrame = frameCounter;
         return true;
@@ -167,8 +191,26 @@ bool PlayerData::resolvePlayerActionable() {
         return true;
     }
 
+    if ((int)player.subactionFrame() == 0 
+        && isAttackingAction(player.action())
+        && player.didActionChange()
+        && player.action() != ACTION_RAPIDJAB) {
+            OSReport(strAttackActionable, player.playerNumber);
+            OSReport("via starting new attack %s\n", actionName(currentAction));
+        return true;
+    }
+
     return false;
 }
+
+
+bool PlayerData::inAttackState() const {
+    return isAttackingAction(this->current->action);
+};
+
+bool PlayerData::inActionableState() const {
+    return isDefinitelyActionable(this->current->action);
+};
 
 
 const char* strDefActionable = "TGT %d now actionable via ";
@@ -228,12 +270,16 @@ u16 PlayerData::subaction() const {
     return current->subaction;
 }
 
-const char* PlayerData::subactionStr() const {
-    if (current->subactionName == NULL) {
+const char* PlayerDataOnFrame::subactionStr() const {
+    if (subactionName == NULL || subactionName == (char*)0xCCCCCCCC) {
         return "UNKNOWN";
     } else {
-        return current->subactionName;
+        return subactionName;
     };
+
+}
+const char* PlayerData::subactionStr() const {
+    return current->subactionStr();
 }
 
 float PlayerData::subactionFrame() const {
@@ -282,6 +328,25 @@ bool PlayerDataOnFrame::isShielding() const {
     return (action == ACTION_GUARD || action == ACTION_GUARDDAMAGE || action == ACTION_GUARDON);
 }
 
+bool PlayerDataOnFrame::inIasa() const {
+    const InterruptGroupStates& ig = interruptGroups;
+    if (isAirborne == true) {
+        // IASA in the air is more for people being able to cancel tumble rather than something that's used a lot.
+        // It comes up occasionally with peach float dair.
+        return canAutocancel();
+    } else {
+        return canCancel || (ig.groundAttack | ig.groundDodge | ig.groundGrab | ig.groundGuard | ig.groundJump | ig.groundSpecial);
+    }
+}
+
+bool PlayerData::inIasa() const {
+    return current->inIasa();
+}
+
+bool PlayerDataOnFrame::canAutocancel() const {
+    return getLowRABit(RA_BIT_ENABLE_LANDING_LAG) != true;
+}
+
 void PlayerData::prepareNextFrame() {
     PlayerDataOnFrame* tmp = current;
 
@@ -289,6 +354,21 @@ void PlayerData::prepareNextFrame() {
     prev = tmp;
 
     memset(current, 0, sizeof(PlayerDataOnFrame));
+    // These get reset every time there's an action change.
+    memcpy(&current->interruptGroups, &prev->interruptGroups, sizeof(current->interruptGroups));
+    current->canCancel = prev->canCancel;
+    current->action = prev->action;
+    current->actionName = prev->actionName;
+    current->isAirborne = prev->isAirborne;
+}
+
+void PlayerData::setAction(u16 newAction) {
+    current->action = newAction;
+    current->actionName = actionName(newAction);
+    current->canCancel = false;
+    current->isAirborne = false;
+    memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
+
 }
 #pragma endregion
 

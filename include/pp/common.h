@@ -20,6 +20,7 @@
 #define WORK_MODULE_LA_VARS 0
 
 #define RA_BIT_ENABLE_ACTION_TRANSITION 0x10
+#define RA_BIT_ENABLE_LANDING_LAG 0x1E
 
 // Re-using brawl-defined strings to save memory
 extern "C" const char* g_strError;          // "ERROR STRING: %s\n"
@@ -76,6 +77,7 @@ namespace ProjectPunch {
     extern const Color& COLOR_BLACK;
     extern const Color& COLOR_WHITE;
     extern const Color& COLOR_TRANSPARENT_GREY;
+    extern Color globalOverlayColor;
 
 
     #define SC_SEL_CHAR "scSelChar"

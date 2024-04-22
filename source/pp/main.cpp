@@ -13,6 +13,10 @@
 #include "pp/graphics/draw.h"
 #include "pp/input/pad.h"
 #include "pp/ft_cancel_module.h"
+#include "pp/color_overlay.h"
+#include "pp/anim_cmd_utils.h"
+#include "pp/anim_cmd_watcher.h"
+#include "pp/status_change_watcher.h"
 
 using namespace ProjectPunch::Graphics;
 using namespace ProjectPunch::Input;
@@ -85,14 +89,14 @@ void printFighterState(PlayerData& playerData) {
     printer.setTextColor(0xFFFFFFFF);
     printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
     printer.setTextBorder(0x000000FF, 1.0f);
-    printer.setPosition(50,50);
+    printer.setPosition(20,20);
 
     printer.begin();
     printer.print(strManipBuffer);
     printer.renderBoundingBox();
 }
 
-inline bool needsInitializing() {
+bool needsInitializing() {
     if (initialized) return false;
     int fighters = g_ftManager->getEntryCount();
     for (char i =  0; i < fighters; i++) {
@@ -191,16 +195,22 @@ void updatePreFrame() {
         }
 
         drawAllPopups();
+
+        for (idx = 0; idx < fighterCount; idx++) {
+            processOverlays(allPlayerData[idx]);
+        }
     } else {
         if (initialized) {
             initialized = false;
             punchMenu.cleanup();
 
+            for (int i = 0; i < PP_MAX_PLAYERS; i++) {
+                allPlayerData[i].cleanup();
+            }
             delete[] allPlayerData;
             allPlayerData = new PlayerData[PP_MAX_PLAYERS];
         }
     }
-
 
     renderables.renderAll();
     startNormalDraw();
@@ -270,7 +280,7 @@ void gatherData(u8 player) {
     if (needsInitializing()) {
         int opType = g_ftManager->getFighterOperationType(entryId);
         #ifdef PP_DEBUG_INIT
-        OSReport("Player %d op type: %d input: 0x%x\n", playerNumber, opType);
+        OSReport("Player %d op type: %d\n", playerNumber, opType);
         #endif
         if (opType != 0) {
             allPlayerData[playerNumber].showOnShieldAdvantage = false;
@@ -280,6 +290,12 @@ void gatherData(u8 player) {
             allPlayerData[playerNumber].showOnHitAdvantage = false;
         };
 
+        AnimCmdWatcher* animCmdEventHandler = new AnimCmdWatcher(&allPlayerData[playerNumber], fighter);
+        animCmdEventHandler->registerWith(fighter);
+        allPlayerData[playerNumber].animCmdWatcher = animCmdEventHandler;
+        StatusChangeWatcher* statusChangeWatcher = new StatusChangeWatcher(&allPlayerData[playerNumber]);
+        statusChangeWatcher->registerWith(fighter);
+        allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
     }
 
     PlayerData& playerData = allPlayerData[playerNumber];
@@ -298,9 +314,10 @@ void gatherData(u8 player) {
     soWorkManageModuleImpl* workModule = dynamic_cast<soWorkManageModuleImpl*>(modules.getWorkManageModule());
     soStatusModule* statusModule = modules.getStatusModule();
     soMotionModuleImpl* motionModule = dynamic_cast<soMotionModuleImpl*>(modules.getMotionModule());
-    ftCancelModule* cancelModule = (ftCancelModule*)fighter->getCancelModule();
+    ftCancelModule* cancelModule = reinterpret_cast<ftCancelModule*>(fighter->getCancelModule());
 
-    /*
+
+    #ifdef PP_DEBUG_FIGHTER_ENTRIES
     OSReport(
         "Player: %d\n"
         "  char type: 0x%X\n" 
@@ -309,15 +326,17 @@ void gatherData(u8 player) {
         ,
         player, character, entryId, fighter
     );
-    */
+    #endif
 
-    // OSReport("Module Locations:\n\tworkModule: %x\n/\tstatusModule: %x\n\tmotionModule: %x\n", workModule, statusModule, motionModule);
+    #ifdef PP_DEBUG_MODULE_LOCATIONS
+    OSReport("Module Locations:\n\tworkModule: %x\n/\tstatusModule: %x\n\tmotionModule: %x\n", workModule, statusModule, motionModule);
+    #endif
 
     if (statusModule != NULL) {
         /* OSReport("Action number: %x\n", statusModule->action); */
         // never seems to work. strcpy(playerData.current->actionname, statusModule->getStatusName(), PP_ACTION_NAME_LEN);
-        playerData.current->action = statusModule->getStatusKind();
-        playerData.current->actionName = statusModule->getStatusName(playerData.current->action);
+
+        // 
 
         #ifdef PP_FIGHTER_STATUS_DEBUG
         OSReport("Status Name @ 0x%0X\n", playerData.current->actionName);
@@ -405,17 +424,9 @@ void gatherData(u8 player) {
                 // do these ever differ, except by 1?
                 playerData.current->subactionTotalFrames = motionModule->getEndFrame();
                 playerData.current->subactionName = motionModule->getName();
-                if (playerData.current->subactionName == NULL) {
-                    
-                }
             }
         }
 
-    }
-    if (cancelModule != NULL) {
-        u32 isEnableCancel = cancelModule->isEnableCancel();
-        // TODO: investigate cancel groups here.
-        currentData.canCancel = (bool)isEnableCancel;
     }
 }
 

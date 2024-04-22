@@ -5,6 +5,7 @@
 #include "pp/main.h"
 
 extern void pauseHookReturn();
+
 using namespace ProjectPunch;
 namespace ProjectPunch {
 namespace Entry {
@@ -24,9 +25,7 @@ void Init() {
     SyringeCore::sySimpleHook(0x8002e5b0, pauseHook);
 }
 
-void Destroy() {
-
-}
+void Destroy() {}
 
 }
 }

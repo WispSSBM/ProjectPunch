@@ -13,25 +13,62 @@ struct PlayerDataOnFrame;
 struct PlayerData;
 struct PlayerDisplayOptions;
 
+class AnimCmdWatcher;
+class StatusChangeWatcher;
+
+// 0 indexed unlike the 
+union InterruptGroupStates {
+    struct {
+        bool groundSpecial;
+        bool groundItem;
+        bool groundGrab;
+        bool groundAttack;
+        bool groundDodge;
+        bool groundGuard;
+        bool groundJump;
+        bool groundMisc;
+        bool airLand;
+        bool airGrabLedge;
+        bool airSpecial;
+        bool airThrowItem;
+        bool airTether;
+        bool airDodge;
+        bool airAttack;
+        bool airFloat;
+        bool airWalljump;
+        bool airDoublejump;
+        bool fallThroughPlat;
+    };
+
+    bool asArray[0x13];
+};
+
 // This is stuff that changes on every frame.
 struct PlayerDataOnFrame {
     PlayerDataOnFrame();
 
     int action;
-    char* actionName;
+    const char* actionName;
     u32 subaction;
-    char* subactionName;
+    const char* subactionName;
+
     float subactionFrame;
     float subactionTotalFrames;
-
     u32 lowRABits;
     u16 actionFrame;
     u16 hitstun;
+
     u16 shieldstun;
+    u16 _padding;
 
-    u32 canCancel: 1;
-    u32 didConnectAttack: 1;
+    bool canCancel;
+    bool isAirborne;
+    bool didConnectAttack;
+    InterruptGroupStates interruptGroups;
 
+    bool inIasa() const;
+    bool canAutocancel() const;
+    const char* subactionStr() const;
     bool getLowRABit(u32 idx) const;
     inline bool isShielding() const;
 
@@ -72,7 +109,12 @@ struct PlayerData {
     bool showOnShieldAdvantage;
     bool showActOutOfLag;
     bool showFighterState;
+    bool enableActionableOverlay;
+    bool enableDashOverlay;
+    bool enableIasaOverlay;
 
+    AnimCmdWatcher* animCmdWatcher;
+    StatusChangeWatcher* statusChangeWatcher;
 
     /* aliases for fields on Current*/
     u16 action() const;
@@ -95,7 +137,12 @@ struct PlayerData {
     bool didActionChange() const;
     bool didSubactionChange() const;
     bool didEnterShield() const;
+    bool inActionableState() const;
+    bool inAttackState() const;
+    bool inIasa() const;
     void prepareNextFrame();
+    void setAction(u16 newAction);
+    void cleanup();
 
     /* Lifecycle methods */
     void resetTargeting();
