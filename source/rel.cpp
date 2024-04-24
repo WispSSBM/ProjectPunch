@@ -8,7 +8,7 @@ namespace Syringe {
     const PluginMeta META = {
         "ProjectPunch",
         "Wisp",
-        Version("0.0.1"),
+        Version(PP_VERSION),
         Version(SYRINGE_VERSION)
     };
 
