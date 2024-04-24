@@ -11,12 +11,18 @@ To build, simply run `make` on the command line.
 
 
 # Installing on your build.
-Copy `ProjectPunch.rel` to `Project+/pf/plugins` (make directory if it doesn't exist.). Move `sy_core.rel` to `Project+/pf/modules`. Overwrite
-the existing file in that folder if it exists; Mismatched versions of this file can cause plugins to not load. 
-Move `syriinge.asm` to `Project+/Source`. Add the following line to of `RSBE01.txt`. Place it after `VBI -> AXNextFrame During Boot v1.0 [Sammi-Husky]` but before any other codes.
+## A note on dolphin builds
+Most Dolphin builds are distributed as SD card `.raw` images. The easiest way that I've found to manipulate these is to download a mainline recent dolphin build, and use its SD managing features to dump the RAW file to a folder. At the end of the installation, you can use the same tool to convert the whole folder back, modifying the original file in place.
 
-```
-.include Source/syriinge.asm
-```
 
-Drag `RSBE01.txt` onto `GCTRealMate.exe` to recompile the GCT file. 
+1) Copy the `Project+` folder to the root of your SD card.
+> Note: recent P+ builds (2.5.2 at time of writing) have included versions of `Project+/module/sy_core.rel`, but they are out of date, and are unused by the stock configuration anyway. You can safely overwrite this file. Using incorrect versions will cause Project Punch to quietly not load.
+
+2) Open RSBE01.txt. 
+
+3) Check for a code at the top of your build. At the top of the file, check for a code with the title that starts with "VBI -> AXNextFrame During Boot". If this code does not exist,
+   add the line `.include Source/pre_syriinge.asm`.
+
+4) After either the "VBI -> AXNextFrame During Boot" or the `pre_syriinge.asm` line, add the line `.include Source/syriinge.asm`.   
+
+5) Drag 'n drop `Project+/RSBE01.txt` onto `Project+/GCTRealMate.exe` to regenerate the `Project+/RSBE01.gct` file.
