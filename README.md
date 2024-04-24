@@ -11,12 +11,12 @@ To build, simply run `make` on the command line.
 
 
 # Installing on your build.
-## A note on dolphin builds
-Most Dolphin builds are distributed as SD card `.raw` images. The easiest way that I've found to manipulate these is to download a mainline recent dolphin build, and use its SD managing features to dump the RAW file to a folder. At the end of the installation, you can use the same tool to convert the whole folder back, modifying the original file in place.
+> **A note on dolphin builds:**
+> Most Dolphin builds are distributed as SD card `.raw` images. The easiest way that I've found to manipulate these is to download a mainline recent dolphin build, and use its SD managing features to dump the RAW file to a folder. At the end of the installation, you can use the same tool to convert the whole folder back, modifying the original file in place.
 
 
 1) Copy the `Project+` folder to the root of your SD card.
-> Note: recent P+ builds (2.5.2 at time of writing) have included versions of `Project+/module/sy_core.rel`, but they are out of date, and are unused by the stock configuration anyway. You can safely overwrite this file. Using incorrect versions will cause Project Punch to quietly not load.
+> **Note:** recent P+ builds (2.5.2 at time of writing) have included versions of `Project+/module/sy_core.rel`, but they are out of date, and are unused by the stock configuration anyway. You can safely overwrite this file. Using incorrect versions will cause Project Punch to quietly not load.
 
 2) Enter Project+ on your SD card. All future instructions are assuming you are in this directory. Open RSBE01.txt. 
 
