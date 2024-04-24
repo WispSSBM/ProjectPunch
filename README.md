@@ -18,11 +18,11 @@ Most Dolphin builds are distributed as SD card `.raw` images. The easiest way th
 1) Copy the `Project+` folder to the root of your SD card.
 > Note: recent P+ builds (2.5.2 at time of writing) have included versions of `Project+/module/sy_core.rel`, but they are out of date, and are unused by the stock configuration anyway. You can safely overwrite this file. Using incorrect versions will cause Project Punch to quietly not load.
 
-2) Open RSBE01.txt. 
+2) Enter Project+ on your SD card. All future instructions are assuming you are in this directory. Open RSBE01.txt. 
 
 3) Check for a code at the top of your build. At the top of the file, check for a code with the title that starts with "VBI -> AXNextFrame During Boot". If this code does not exist,
    add the line `.include Source/pre_syriinge.asm`.
 
 4) After either the "VBI -> AXNextFrame During Boot" or the `pre_syriinge.asm` line, add the line `.include Source/syriinge.asm`.   
 
-5) Drag 'n drop `Project+/RSBE01.txt` onto `Project+/GCTRealMate.exe` to regenerate the `Project+/RSBE01.gct` file.
+5) Drag 'n drop `RSBE01.txt` onto `GCTRealMate.exe` to regenerate the `RSBE01.gct` file.
