@@ -40,10 +40,14 @@ class PopupConfig {
             textColor(0xFFFFFFFF), 
             bgColor(COLOR_TRANSPARENT_GREY),
             outlineColor(0x333333FF),
-            highlightColor(0xBBBBBBFF),
-            fontScale(0.5f, 0.7f) 
+            highlightColor(0xBBBBBBFF)
         {
-            popupPadding = 10;
+            if (g_GameGlobal->m_record->m_menuData.m_isWidescreen) {
+                fontScale = Coord2DF(0.5112f, 0.7f);
+            } else {
+                fontScale = Coord2DF(0.65f, 0.65f);
+            }
+            popupPadding = 8;
             fontScaleMult = 1.f;
             lineHeightMult = 20;
         };

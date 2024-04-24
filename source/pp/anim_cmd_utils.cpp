@@ -15,7 +15,7 @@ namespace PP {
 class AnimCmdVariableArg {
 public:
     AnimCmdVariableArg(const soAnimCmdArgument& rawArg) {
-        if (rawArg.m_varType != ANIM_CMD_ARG_VARIABLE) {
+        if (rawArg.m_varType != AnimCmd_Arg_Type_Variable) {
             m_invalid = true;
             OSReport("WARNING: Got animcmd arg with wrong var type: type: 0x%8X, arg: 0x%8X\n", rawArg.m_varType, rawArg.m_rawValue);
             return;
@@ -272,23 +272,23 @@ int snprint_anim_cmd(char* buffer, size_t maxLen, const soAnimCmd& animCmd) {
 
         soAnimCmdArgument& arg = animCmd.m_args[i];
         switch (arg.m_varType) {
-        case(ANIM_CMD_ARG_INT):
+        case(AnimCmd_Arg_Type_Int):
             _SNPRINTF(buffer, maxLen - written, "%d", arg.m_rawValue);
             break;
-        case(ANIM_CMD_ARG_SCALAR):
+        case(AnimCmd_Arg_Type_Scalar):
             _SNPRINTF(buffer, maxLen - written, "%0.2f", ((float)arg.m_rawValue) / 60000.f);
             break;
-        case(ANIM_CMD_ARG_PTR):
+        case(AnimCmd_Arg_Type_Ptr):
             _SNPRINTF(buffer, maxLen - written, "PTR(0x%0X)", arg.m_rawValue);
             break;
-        case(ANIM_CMD_ARG_BOOL):
+        case(AnimCmd_Arg_Type_Bool):
             _SNPRINTF(buffer, maxLen - written, "%s", arg.m_rawValue == 0 ? "false" : "true");
             break;
-        case(ANIM_CMD_ARG_VARIABLE):
+        case(AnimCmd_Arg_Type_Variable):
             sprReturn = AnimCmdVariableArg(arg).snprint_self(buffer, maxLen - written);
             if (sprReturn < (maxLen - written)) {buffer += sprReturn; written += sprReturn;}
             break;
-        case(ANIM_CMD_ARG_REQUIREMENT):
+        case(AnimCmd_Arg_Type_Requirement):
             _SNPRINTF(buffer, maxLen - written, "REQ(0x%0X)", arg.m_rawValue);
             break;
         default:

@@ -89,7 +89,7 @@ void printFighterState(PlayerData& playerData) {
     printer.setTextColor(0xFFFFFFFF);
     printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
     printer.setTextBorder(0x000000FF, 1.0f);
-    printer.setPosition(20,20);
+    printer.setPosition(35,35);
 
     printer.begin();
     printer.print(strManipBuffer);
@@ -275,14 +275,16 @@ void debugWorkModule(const Fighter& fighter) {
 enum GatherDataErrors {
     NO_FT_ENTRY,
     NO_FIGHTER,
+    HIGH_SLOT,
+    INVALID_SLOT
 };
-void gatherData(u8 player) {
-    if (player > 3) {
-        OSReport("Asked to gather data for invalid player %d\n", player);
+void gatherData(u8 playerEntryIdx) {
+    if (playerEntryIdx > 3) {
+        OSReport("Asked to gather data for invalid player entry index %d\n", playerEntryIdx);
         return;
     }
 
-    int entryId = g_ftManager->getEntryIdFromIndex(player);
+    int entryId = g_ftManager->getEntryIdFromIndex(playerEntryIdx);
     ftEntry* entry = g_ftEntryManager->getEntity(entryId);
     Fighter* fighter = g_ftManager->getFighter(entryId, 0);
     if (entry == NULL) {
@@ -293,10 +295,31 @@ void gatherData(u8 player) {
         OSReport(g_strTypedError, "gatherData", NO_FIGHTER);
         return;
     }
-    u8 playerNumber = g_ftManager->getPlayerNo(entryId);
+
+    /* 
+     * This roundabout with the slot numbers is because the order the players are loaded in isn't always
+     * the same as which "slot" holds their % and stock icons and it could be wrong otherwise.
+     */
+    if (entry->m_slotIndex >= g_ftManager->m_slotManager->m_slotCount) {
+        OSReport(g_strTypedError, "gatherData", INVALID_SLOT);
+    }
+    int playerNumber = g_ftManager->m_slotManager->m_slots[entry->m_slotIndex].m_slotNo;
+    if (playerNumber > 3) {
+        OSReport(g_strTypedError, "gatherData", HIGH_SLOT);
+        return;
+    }
+    PlayerData& playerData = allPlayerData[playerNumber];
 
     if (needsInitializing()) {
         int opType = g_ftManager->getFighterOperationType(entryId);
+        playerData.charId = (ftKind)(fighter->getFtKind());
+        playerData.taskId = fighter->m_taskId;
+        int muCharKind = muMenu::exchangeGmCharacterKind2MuStockchkind(entry->m_characterKind);
+        playerData.fighterName = muMenu::exchangeMuStockchkind2MuCharName(muCharKind);
+        playerData.playerNumber = playerNumber;
+
+        OSReport("Initializing P%d: %s\n", playerNumber, playerData.fighterName);
+
         #ifdef PP_DEBUG_INIT
         OSReport("Player %d op type: %d\n", playerNumber, opType);
         #endif
@@ -316,17 +339,11 @@ void gatherData(u8 player) {
         allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
     }
 
-    PlayerData& playerData = allPlayerData[playerNumber];
     playerData.prepareNextFrame();
     PlayerDataOnFrame& currentData = *playerData.current;
     PlayerDataOnFrame& prevData = *playerData.current;
-    playerData.charId = (ftKind)(fighter->getFtKind());
-    playerData.taskId = fighter->m_taskId;
-    int muCharKind = muMenu::exchangeGmCharacterKind2MuStockchkind(entry->m_characterKind);
-    playerData.fighterName = muMenu::exchangeMuStockchkind2MuCharName(muCharKind);
     playerData.entryId = entryId;
 
-    allPlayerData[player].playerNumber = player+1;
     soModuleAccesser& modules = *fighter->m_moduleAccesser;
 
     soWorkManageModuleImpl* workModule = dynamic_cast<soWorkManageModuleImpl*>(modules.getWorkManageModule());

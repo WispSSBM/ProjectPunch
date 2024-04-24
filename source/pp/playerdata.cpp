@@ -115,15 +115,13 @@ int PlayerData::debugStr(char* buffer) {
     this->writeLowRABoolStr(raBits);
 
     return snprintf(buffer, PP_STR_MANIP_SIZE,
-    "Player %d: %s\n"
-    "  Action:    %s(0x%X)\n"
+    "Player %d: %s               Action:    %s(0x%X)\n"
     "  Subaction: %s(0x%X)       Frames: %d/%d\n"
     "  Hitstun: %d/%d        Shieldstun: %d/%d        Shielding: %c\n"
     "  Frame: %d             Airborne: %c          ModCancel: %c\n"
-    "  RA: %s\n"
+    "  RA: %s"
     ,
-    playerNumber, this->fighterName,
-    actionName(f.action), f.action,
+    playerNumber, this->fighterName, actionName(f.action), f.action,
     f.subactionName, f.subaction, (int)f.subactionFrame, (int)f.subactionTotalFrames,
     f.hitstun, maxHitstun, f.shieldstun, maxShieldstun, (f.isShielding() ? 'T' : 'F'),
     frameCounter, (f.isAirborne ? 'T' : 'F'), (f.canCancel ? 'T' : 'F'),

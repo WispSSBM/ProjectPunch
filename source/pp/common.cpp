@@ -1,6 +1,8 @@
 #include <OS/OSError.h>
 #include <types.h>
 #include "pp/common.h"
+#include <gf/gf_scene.h>
+#include <cstring>
 
 /********/
 // Universal Externs. This is imported by common.h so it is usable throughout.
@@ -41,16 +43,9 @@ void Color::debugPrint(const char* title = "") {
 
 //hacky way to check if in game
 SCENE_TYPE getScene() {
-    u32* ptr = (u32*) (0x805b4fd8 + 0xd4);
-    ptr = (u32*) *ptr;
-    if(ptr < (u32*)0xA0000000) {
-        ptr = (u32*) *(ptr + (0x10 / 4));
-        if(ptr != NULL) {
-            u32 scene = *(ptr + (8 / 4));
-            return (SCENE_TYPE)scene;
-        }
-    }
-    return UNKNOWN;
+    gfSequence* seq = gfSceneManager::getInstance()->m_currentSequence;
+    int mysteriousInt = *(((int*)seq) + 2);
+    return (SCENE_TYPE)mysteriousInt;
 }
 
 }

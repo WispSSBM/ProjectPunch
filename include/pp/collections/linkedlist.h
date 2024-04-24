@@ -89,6 +89,7 @@ void linkedlist<T>::prepend(T& element) {
     newNode->next = this->headNode->next;
     newNode->next->prev = newNode;
     newNode->prev->next = newNode;
+    length += 1;
 }
 
 template<class T>
@@ -99,23 +100,26 @@ void linkedlist<T>::append(T& element) {
     newNode->prev = this->tailNode->prev;
     newNode->next->prev = newNode;
     newNode->prev->next = newNode;
+    length += 1;
 }
 
 template <class T>
 class LinkedlistIterator {
-    public:
-        LinkedlistIterator(linkedlist<T>& list);
-        ~LinkedlistIterator<T>();
-        void deleteHere();
-        void insertHere(T& element);
-        T* next();
-    private:
-        listnode_t* current;
+public:
+    LinkedlistIterator(linkedlist<T>& list);
+    ~LinkedlistIterator<T>();
+    void deleteHere();
+    void insertHere(T& element);
+    T* next();
+private:
+    linkedlist<T>* parentList;
+    listnode_t* current;
 };
 
 template<class T>
 LinkedlistIterator<T>::LinkedlistIterator(linkedlist<T>& list) {
     this->current = list.headNode;
+    this->parentList = &list;
 }
 
 template<class T>
@@ -150,6 +154,7 @@ void LinkedlistIterator<T>::deleteHere() {
     }
 
     delete goingAway;
+    parentList->length -= 1;
     return;
 };
 
@@ -164,6 +169,7 @@ void LinkedlistIterator<T>::insertHere(T& element) {
     if (newNode->next != 0) {
         newNode->next->prev = newNode;
     }
+    parentList->length += 1;
 };
 
 template<class T>

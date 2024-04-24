@@ -3,6 +3,7 @@
 #include <types.h>
 #include <GX/GXTypes.h>
 #include <nw4r/ut/color.h>
+#include <gm/gm_global.h>
 
 /* Static value defines */
 
@@ -25,6 +26,7 @@
 // Re-using brawl-defined strings to save memory
 extern "C" const char* g_strError;          // "ERROR STRING: %s\n"
 extern "C" const char* g_strTypedError;     // "%s Error: %d\n"
+extern GameGlobal* g_GameGlobal;
 namespace PP {
 
     typedef struct Coord2D {

@@ -44,9 +44,9 @@ void PpunchMenu::init() {
     ctrlInfoPage.addOption(new LabelOption("DPad/Stick", "Adjust selected value"));
     ctrlInfoPage.addOption(new LabelOption("Start", "Exit the Menu"));
     ctrlInfoPage.addOption(new LabelOption("Z", "Deactivate the Menu (still visible)"));
-    ctrlInfoPage.addOption(new LabelOption("X (hold)", "No input delay (turbo)"));
-    ctrlInfoPage.addOption(new LabelOption("Y (hold)", "Adjust values by 5x the default amount"));
-    ctrlInfoPage.addOption(new LabelOption("L/R (hold on startup)", "Don't open this menu automatically"));
+    ctrlInfoPage.addOption(new LabelOption("X (hold)", "Turbo adjust values"));
+    ctrlInfoPage.addOption(new LabelOption("Y (hold)", "Adjust values by 5x"));
+    ctrlInfoPage.addOption(new LabelOption("L/R (hold on startup)", "Disable menu autoopen."));
     addPage(&ctrlInfoPage);
 
     u32 fighters = g_ftManager->getEntryCount();
@@ -346,13 +346,17 @@ void PpunchMenu::drawHighlightBox() {
     }
 }
 
-#define P1_2P_COORDS Coord2D(200, 350)
-#define P2_2P_COORDS Coord2D(355, 350)
+#define P1_2P_WIDESCREEN_COORDS Coord2D(200, 350)
+#define P2_2P_WIDESCREEN_COORDS Coord2D(355, 350)
+#define P1_2P_COORDS Coord2D(180, 350)
+#define P2_2P_COORDS Coord2D(390, 350)
 #define P1_4P_COORDS Coord2D(50, 350)
 #define P2_4P_COORDS Coord2D(200, 350)
 #define P3_4P_COORDS Coord2D(350, 350)
 #define P4_4P_COORDS Coord2D(500, 350)
 Coord2D getHpPopupBoxCoords(int playerNum) {
+    // playerNum is 1-indexed like the variant in the playerData struct.
+
     SCENE_TYPE scene = getScene();
     char totalPlayers;
 
@@ -361,39 +365,38 @@ Coord2D getHpPopupBoxCoords(int playerNum) {
     if (scene == TRAINING_MODE_MMS) {
         totalPlayers = 4;
         switch(playerNum){
-        case 0:
-            return P2_4P_COORDS;
-        case 1:
-            return P1_4P_COORDS;
-        default:
-            return Coord2D(0, 0);
+        case 0: return P1_4P_COORDS;
+        case 1: return P2_4P_COORDS;
+        case 2: return P3_4P_COORDS;
+        case 3: return P4_4P_COORDS;
+        default: return Coord2D(0, 0);
         }
     }
 
     totalPlayers = g_ftManager->getEntryCount();
 
     if (totalPlayers == 2) {
-        switch(playerNum) {
-            case 0:
-                return P1_2P_COORDS;
-            case 1:
-                return P2_2P_COORDS;
-            default:
-                return Coord2D(0, 0);
+        if (g_GameGlobal->m_record->m_menuData.m_isWidescreen) {
+            switch(playerNum) {
+                case 0: return P1_2P_WIDESCREEN_COORDS;
+                case 1: return P2_2P_WIDESCREEN_COORDS;
+                default: return Coord2D(0, 0);
+            }
+        } else {
+            switch(playerNum) {
+                case 0: return P1_2P_COORDS;
+                case 1: return P2_2P_COORDS;
+                default: return Coord2D(0, 0);
+            }
         }
     }
     if (totalPlayers == 4) {
         switch(playerNum) {
-            case 0:
-                return P1_4P_COORDS;
-            case 1:
-                return P2_4P_COORDS;
-            case 2:
-                return P3_4P_COORDS;
-            case 3:
-                return P4_4P_COORDS;
-            default:
-                return Coord2D(0, 0);
+            case 0: return P1_4P_COORDS;
+            case 1: return P2_4P_COORDS;
+            case 2: return P3_4P_COORDS;
+            case 3: return P4_4P_COORDS;
+            default: return Coord2D(0, 0);
         }
     }
 
@@ -406,21 +409,23 @@ Coord2D getHpPopupBoxCoords(int playerNum) {
 
 void drawAllPopups() {
     for(int i = 0; i < PP_MAX_PLAYERS; i++) {
-        LinkedlistIterator<Popup> itr = LinkedlistIterator<Popup>(playerPopups[i]);
-        Popup* popup;
-        Coord2D coords = getHpPopupBoxCoords(i);
+        if (playerPopups[i].length > 0 ) {
+            LinkedlistIterator<Popup> itr = LinkedlistIterator<Popup>(playerPopups[i]);
+            Popup* popup;
+            Coord2D coords = getHpPopupBoxCoords(allPlayerData[i].playerNumber);
+            OSReport("Got coords (%d, %d)\n", coords.x, coords.y);
 
+            while ((popup = itr.next()) != NULL) {
+                if (popup->expired()) {
+                    itr.deleteHere();
+                    delete popup;
+                } else {
+                    popup->coords = coords;
+                    // OSReport("Set popup coords to %d,%d\n", coords.x, coords.y);
+                    popup->draw(printer);
 
-        while ((popup = itr.next()) != NULL) {
-            if (popup->expired()) {
-                itr.deleteHere();
-                delete popup;
-            } else {
-                popup->coords = coords;
-                // OSReport("Set popup coords to %d,%d\n", coords.x, coords.y);
-                popup->draw(printer);
-
-                coords.y -= PP_POPUP_VERTICAL_OFFSET;
+                    coords.y -= PP_POPUP_VERTICAL_OFFSET;
+                }
             }
         }
     }

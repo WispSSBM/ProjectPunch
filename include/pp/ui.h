@@ -14,15 +14,21 @@ namespace PP {
 class PpunchMenu : public Menu {
     public:
         PpunchMenu() {
-            pos = Coord2D(100, 25);
+            pos = Coord2D(100, 50);
             size = Coord2D(440, 350);
 
             padding = 25;
             outlineWidth = 4;
             lineHeightMultiplier = 25;
 
-            baseFontScale = Coord2DF(0.5, 0.7);
-            titleBaseFontScale = Coord2DF(0.5, 1.0);
+            if (g_GameGlobal->m_record->m_menuData.m_isWidescreen) {
+                baseFontScale = Coord2DF(0.5, 0.7);
+                titleBaseFontScale = Coord2DF(0.5, 1.0);
+            } else {
+                baseFontScale = Coord2DF(0.7f, 0.7f);
+                titleBaseFontScale = Coord2DF(0.684f, 1.0f);
+            }
+
             fontScaleMultiplier = 1.15;
             titleFontScaleMultiplier = 1.0;
 
