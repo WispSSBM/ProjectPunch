@@ -413,7 +413,6 @@ void drawAllPopups() {
             LinkedlistIterator<Popup> itr = LinkedlistIterator<Popup>(playerPopups[i]);
             Popup* popup;
             Coord2D coords = getHpPopupBoxCoords(allPlayerData[i].playerNumber);
-            OSReport("Got coords (%d, %d)\n", coords.x, coords.y);
 
             while ((popup = itr.next()) != NULL) {
                 if (popup->expired()) {
