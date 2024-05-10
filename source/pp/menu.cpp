@@ -186,6 +186,13 @@ void Menu::toggle() {
         visible = true;
     }
 }
+
+void Menu::clearPages() {
+    for (int i = 0; i < pages.size(); i++){
+        delete reinterpret_cast<Page*>(pages[i]);
+    }
+    pages.clear();
+}
 #pragma endregion
 
 #pragma region ModifiableScalars

@@ -3,12 +3,6 @@
 #include <ft/ft_manager.h>
 #include <OS/OSError.h>
 
-#ifdef PP_DEBUG_OVERLAY
-#define PP_DEBUG(...) (OSReport(__VA_ARGS__))
-#else
-#define PP_DEBUG(...)
-#endif
-
 namespace PP {
 
 void processOverlays(const PlayerData& player) {
@@ -16,7 +10,7 @@ void processOverlays(const PlayerData& player) {
     soColorBlendModule* cbm = fighter.m_moduleAccesser->getColorBlendModule();
     bool overlaySetThisFrame = false;
     if (cbm == NULL) {
-        PP_DEBUG("Player %d with fighter @ 0x%0x has null color blend mod.\n", player.playerNumber, &fighter);
+        DEBUG_OVERLAY("Player %d with fighter @ 0x%0x has null color blend mod.\n", player.playerNumber, &fighter);
         return;
     }
 

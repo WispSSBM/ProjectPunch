@@ -11,16 +11,6 @@
 #include <OS/OSError.h>
 #include <gf/gf_draw.h>
 
-#ifdef PP_DEBUG_ALL
-#define PP_DEBUG_TEXT_PRINTER 1
-#endif
-
-#ifdef PP_DEBUG_TEXT_PRINTER
-#define PP_DEBUG(...) OSReport(__VA_ARGS__)
-#else
-#define PP_DEBUG(...)
-#endif
-
 namespace PP {
 namespace Graphics {
 
@@ -89,7 +79,7 @@ void TextPrinter::begin() {
 }
 
 void TextPrinter::begin(bool is2D) {
-    PP_DEBUG("TextPrinter::begin()\n");
+    DEBUG_TEXT_PRINTER("TextPrinter::begin()\n");
     //clear 2D flag
     this->is2D = is2D;
     if (is2D) {
@@ -146,7 +136,7 @@ void TextPrinter::setTextColor(Color color) {
 
 void TextPrinter::setTextBorder(Color color, float width) {
     #ifdef PP_DEBUG_TEXT_PRINTER
-    PP_DEBUG("TextPrinter::setTextBorder width: %f\n", width);
+    DEBUG_TEXT_PRINTER("TextPrinter::setTextBorder width: %f\n", width);
     color.debugPrint("setTextBorder");
     #endif
     
@@ -155,14 +145,14 @@ void TextPrinter::setTextBorder(Color color, float width) {
 }
 
 void TextPrinter::setScale(Coord2DF scaleDims, float multiplier, float lineHeightMult = 25) {
-    PP_DEBUG("TextPrinter::setScale(scale=(%f, %f), mult=%f, lineMult=%f);\n", scaleDims.x, scaleDims.y, multiplier, lineHeightMult);
+    DEBUG_TEXT_PRINTER("TextPrinter::setScale(scale=(%f, %f), mult=%f, lineMult=%f);\n", scaleDims.x, scaleDims.y, multiplier, lineHeightMult);
     this->scale.x = scaleDims.x * multiplier;
     this->scale.y = scaleDims.y * multiplier;
     this->lineHeight = this->scale.y * lineHeightMult;
 }
 
 void TextPrinter::setPosition(float x, float y) {
-    PP_DEBUG("TextPrinter::setPosition(%f, %f);\n", x, y);
+    DEBUG_TEXT_PRINTER("TextPrinter::setPosition(%f, %f);\n", x, y);
     charWriter->SetCursor(x, y, 0);
 }
 
@@ -183,7 +173,7 @@ void TextPrinter::printf(const char* fmt, ...) {
 }
 
 void TextPrinter::print(const char *chars) {
-    PP_DEBUG("TextPrinter::print: %s\n", chars);
+    DEBUG_TEXT_PRINTER("TextPrinter::print: %s\n", chars);
     nw4r::ut::Color realTextColor = textColor.withAlpha(opacity).utColor;
     charWriter->SetTextColor(realTextColor);
     charWriter->SetScale(scale.x, scale.y);

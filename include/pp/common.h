@@ -107,6 +107,68 @@ namespace PP {
 
     int max(int a, int b);
     float fmax(float a, float b);
-    Color applyAlpha(Color input, u8 alpha);
     SCENE_TYPE getScene();
+
+    #ifdef PP_DEBUG_ALL
+    #define PP_DEBUG_ANIMCMD
+    #define PP_DEBUG_CTORS
+    #define PP_DEBUG_INIT
+    #define PP_DEBUG_FIGHTERS
+    #define PP_DEBUG_OVERLAY
+    #define PP_DEBUG_POPUPS
+    #define PP_DEBUG_MENU
+    #define PP_DEBUG_MEM
+    #define PP_DEBUG_TEXT_PRINTER
+    #endif
+
+    /* Conditional print functions */
+    #ifdef PP_DEBUG_CTOR
+    #define DEBUG_CTOR(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_CTOR(...)
+    #endif
+
+    #ifdef PP_DEBUG_OVERLAY
+    #define DEBUG_OVERLAY(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_OVERLAY(...)
+    #endif
+
+    #ifdef PP_DEBUG_MENU
+    #define DEBUG_MENU(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_MENU(...)
+    #endif
+
+    #ifdef PP_DEBUG_TEXT_PRINTER
+    #define DEBUG_TEXT_PRINTER(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_TEXT_PRINTER(...)
+    #endif
+
+    #ifdef PP_DEBUG_ANIMCMD
+    #define DEBUG_ANIMCMD(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_ANIMCMD(...)
+    #endif
+
+    #ifdef PP_DEBUG_INIT
+    #define DEBUG_INIT(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_INIT(...)
+    #endif
+
+    #ifdef PP_DEBUG_FIGHTERS
+    #define DEBUG_FIGHTERS(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_FIGHTERS(...)
+    #endif
+
+    #ifdef PP_DEBUG_POPUPS
+    #define DEBUG_POPUPS(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_POPUPS(...)
+    #endif
+
+
 }

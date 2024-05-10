@@ -31,7 +31,6 @@ struct OptionType {
     virtual void setParentPage(Page* p) = 0;
     virtual bool isScalarOption() { return true; };
     virtual bool isFullySelected() { return isSelected; };
-    void rawRender(TextPrinter* printer, const char* buffer);
 
     OptionType() {
         name = "";
@@ -61,14 +60,21 @@ struct StandardOption : public OptionType {
 };
 
 struct Page {
-    Page(Menu* myMenu) :
-        menu(myMenu), options(*new vector()) {
-            currentOption = 0;
-            isSelected = false;
-            highlightedOptionBottom = 0.f;
-            highlightedOptionTop = 0.f;
-            strcpy("generic page", title);
-        };
+    Page(Menu* myMenu = NULL) {
+        this->menu = myMenu;
+        this->title = new char[256];
+        currentOption = 0;
+        isSelected = false;
+        highlightedOptionBottom = 0.f;
+        highlightedOptionTop = 0.f;
+        strcpy("generic page", title);
+    };
+    virtual ~Page() {
+        delete this->title;
+        for (int i = 0; i < options.size(); i++) {
+            delete reinterpret_cast<OptionType*>(options[i]);
+        }
+    }
     void addOption(OptionType* option);
     void hide();
     void up();
@@ -85,24 +91,15 @@ struct Page {
     virtual void deselect();
     virtual bool isFullySelected() { return reinterpret_cast<OptionType*>(options[currentOption])->isFullySelected(); };
     virtual const char* getTitle();
-    Page(): options(*new vector()) {
-        currentOption = 0;
-        isSelected = false;
-        highlightedOptionBottom = 0.f;
-        highlightedOptionTop = 0.f;
-        strcpy("generic page", title);
-    }
-    virtual ~Page() {}
 
-    vector& options;
+    vector options;
     char currentOption;
     bool isSelected;
     float highlightedOptionTop;
     float highlightedOptionBottom;
     Menu* menu;
 
-    // TODO: Make this a title returning function.
-    char title[256];
+    char* title;
 };
 
 class Menu {
@@ -123,6 +120,9 @@ public:
         selected = false;
         currentPageIdx = -1;
     };
+    virtual ~Menu() {
+        clearPages();
+    }
 
     void nextPage();
     void prevPage();
@@ -136,6 +136,7 @@ public:
     virtual void render(TextPrinter* printer, char* buffer);
     virtual void unpause();
     virtual void toggle();
+    virtual void clearPages();
 
     bool visible;
     bool paused;
@@ -369,27 +370,33 @@ private:
 
 class SubpageOption : public OptionType {
 public:
-    SubpageOption(const char* name): currentOption(_index), options(*new vector()) {
+    SubpageOption(const char* name): currentOption(_index) {
         setDefaults();
         this->name = name;
     }
-    SubpageOption(const char* name, int height, int depth): currentOption(_index), options(*new vector()) {
+    SubpageOption(const char* name, int height, int depth): currentOption(_index) {
         setDefaults();
         this->name = name;
         this->height = height;
         this->depth = depth;
     }
-    SubpageOption(const char* name, bool collapsible): currentOption(_index), options(*new vector()) {
+    SubpageOption(const char* name, bool collapsible): currentOption(_index) {
         setDefaults();
         this->name = name;
         this->collapsible = collapsible;
     }
-    SubpageOption(const char* name, int height, int depth, bool collapsible): currentOption(_index), options(*new vector()) {
+    SubpageOption(const char* name, int height, int depth, bool collapsible): currentOption(_index) {
         setDefaults();
         this->name = name;
         this->height = height;
         this->depth = depth;
         this->collapsible = collapsible;
+    }
+
+    virtual ~SubpageOption() {
+        for (int i = 0; i < options.size(); i++) {
+            delete reinterpret_cast<OptionType*>(options[i]);
+        }
     }
 
     virtual void modify(float amount);
@@ -412,16 +419,7 @@ public:
     void removeOptions();
     int getOptionCount();
 
-    virtual ~SubpageOption() {
-        for (int i = 0; i < options.size(); i++) {
-            delete reinterpret_cast<OptionType*>(options[i]);
-        }
-
-        options.clear();
-        delete &options;
-    }
-
-    vector& options;
+    vector options;
     int& currentOption;
     int _index;
     char indent;

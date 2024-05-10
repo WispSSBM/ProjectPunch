@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <OS/OSError.h>
 
 #include "pp/actions.h"
 #include "pp/common.h"
@@ -18,6 +19,14 @@ class StatusChangeWatcher;
 
 // 0 indexed unlike the 
 union InterruptGroupStates {
+    InterruptGroupStates() {
+        DEBUG_CTOR("InterruptGroupStates ctor @ 0x%0x\n", this);
+        memset(asArray, 0, 0x13);
+    }
+    ~InterruptGroupStates() {
+        DEBUG_CTOR("InterruptGroupStates dtor @ 0x%0x\n", this);
+    }
+
     struct {
         bool groundSpecial;
         bool groundItem;
@@ -46,6 +55,9 @@ union InterruptGroupStates {
 // This is stuff that changes on every frame.
 struct PlayerDataOnFrame {
     PlayerDataOnFrame();
+    ~PlayerDataOnFrame() {
+        DEBUG_CTOR("PlayerDataOnFrame dtor @ 0x%0x\n", this);
+    }
 
     int action;                  // 0x0
     const char* actionName;      // 0x4
@@ -69,7 +81,7 @@ struct PlayerDataOnFrame {
     bool canAutocancel() const;
     const char* subactionStr() const;
     bool getLowRABit(u32 idx) const;
-    inline bool isShielding() const;
+    bool isShielding() const;
 
 };
 
@@ -77,6 +89,7 @@ struct PlayerDataOnFrame {
 // It doesn't auto-clear and needs to be cleared manually.
 struct PlayerData {
     PlayerData();
+    ~PlayerData();
     u16 maxHitstun;    // 0x0
     u16 maxShieldstun; // 0x2
     u8 playerNumber;   // 0x4
@@ -148,7 +161,6 @@ struct PlayerData {
     bool inIasa() const;
     void prepareNextFrame();
     void setAction(u16 newAction);
-    void cleanup();
 
     /* Lifecycle methods */
     void resetTargeting();

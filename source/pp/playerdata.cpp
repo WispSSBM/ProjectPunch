@@ -2,6 +2,7 @@
 
 #include <OS/OSError.h>
 #include <stdio.h>
+#include <memory.h>
 
 #include "pp/playerdata.h"
 #include "pp/anim_cmd_watcher.h"
@@ -10,7 +11,7 @@
 namespace PP {
 
 extern u32 frameCounter;
-PlayerData* allPlayerData = new PlayerData[PP_MAX_PLAYERS];
+PlayerData* allPlayerData = NULL;
 
 
 bool startsWith(const char* testStr, const char* prefix) {
@@ -63,13 +64,11 @@ PlayerData::PlayerData() {
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
     
-
-    #ifdef PP_DEBUG_PLAYERDATA_LOCATION
-    OSReport("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
-    #endif PP_DEBUG_PLAYERDATA_LOCATION
+    DEBUG_CTOR("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
 };
 
-void PlayerData::cleanup() {
+PlayerData::~PlayerData() {
+    DEBUG_CTOR("PlayerData dtor: this=0x%x\n", this);
     if (animCmdWatcher != NULL) {
         delete animCmdWatcher;
     }
@@ -77,12 +76,14 @@ void PlayerData::cleanup() {
     if (statusChangeWatcher != NULL) {
         delete statusChangeWatcher;
     }
+
+    delete current;
+    delete prev;
 }
 
 PlayerDataOnFrame::PlayerDataOnFrame() {
-        #ifdef PP_DEBUG_PLAYERDATA_LOCATION
-        OSReport("PlayerDataOnFrame ctor: this=0x%x\n", this);
-        #endif
+        DEBUG_CTOR("PlayerDataOnFrame ctor: this=0x%x\n", this);
+
 
         action = 0;
         actionName = NULL;

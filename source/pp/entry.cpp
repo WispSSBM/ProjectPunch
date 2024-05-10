@@ -3,6 +3,8 @@
 #include "pp/entry.h"
 #include "pp/feature_tester.h"
 #include "pp/main.h"
+#include "pp/playerdata.h"
+#include "memory.h"
 
 extern void pauseHookReturn();
 
@@ -18,7 +20,6 @@ asm void pauseHook() {
     b pauseHookReturn;
 }
 
-void foo() {}
 void Init() {
     //SyringeCore::syInlineHook(0x800177B0, (void*)ProjectPunch::featureTester);
     SyringeCore::syInlineHook(0x800177B0, (void*)PP::updatePreFrame);

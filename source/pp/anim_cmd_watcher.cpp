@@ -36,9 +36,7 @@ bool AnimCmdWatcher::notifyEventAnimCmd(acAnimCmd* acmd, soModuleAccesser* modul
                     int cmdArgVal = cmd.m_args[0].m_rawValue;
                     if (cmdArgVal > 0x13) { OSReport("Unknown interrupt group: %d", cmdArgVal); }
                     else {
-                        #ifdef PP_DEBUG_INTERRUPTS
-                        OSReport("Setting interrupt group %d = %d\n", cmdArgVal-1, cmd.m_code);
-                        #endif
+                        DEBUG_ANIMCMD("Setting interrupt group %d = %d\n", cmdArgVal-1, cmd.m_code);
                         m_playerData->current->interruptGroups.asArray[cmdArgVal-1] = cmd.m_code == 10 ? true : false;
 
                         // PSA scripts are pretty good about enabling ground ints on land and
@@ -52,7 +50,7 @@ bool AnimCmdWatcher::notifyEventAnimCmd(acAnimCmd* acmd, soModuleAccesser* modul
                 }
             }
         } else if (cmd.m_module == AnimCmdModuleNum::ftCancelModule) {
-            OSReport("[f%d, P%d, %s, %d] Setting canCancel= %c\n", 
+            DEBUG_ANIMCMD("[f%d, P%d, %s, %d] Setting canCancel= %c\n", 
                 frameCounter, 
                 m_playerData->playerNumber, 
                 m_playerData->fighterName, 

@@ -32,9 +32,7 @@ void ui_cpp_static_dtor() {
 
 void PpunchMenu::init() {
     /* Controls Info Page */
-    #ifdef PP_DEBUG_MENU_SETUP
-    OSReport("Initializing Project Punch menu.\n");
-    #endif
+    DEBUG_MENU("Initializing Project Punch menu.\n");
     Page& ctrlInfoPage = *(new Page(this));
     snprintf(ctrlInfoPage.title, 256, "Menu Controls");
     ctrlInfoPage.addOption(new LabelOption("L+R+DpadUp", "Open and close the menu."));
@@ -50,16 +48,12 @@ void PpunchMenu::init() {
     addPage(&ctrlInfoPage);
 
     u32 fighters = g_ftManager->getEntryCount();
-    #ifdef PP_DEBUG_MENU_SETUP
-    OSReport("Detected %d fighters.\n", fighters);
-    #endif
+    DEBUG_MENU("Detected %d fighters.\n", fighters);
     for (u32 i = 0; i < fighters; i++) {
         Page& newPage = *(new Page(this));
         PlayerData& player = allPlayerData[i];
         const char* ftName = player.fighterName;
-        #ifdef PP_DEBUG_MENU_SETUP
-        OSReport("Adding page for P%d: %s @ 0x%x\n", player.playerNumber, ftName, (void*)&player);
-        #endif
+        DEBUG_MENU("Adding page for P%d: %s @ 0x%x\n", player.playerNumber, ftName, (void*)&player);
         snprintf(newPage.title, 256, "P%d = %s", i+1, player.fighterName);
         newPage.addOption(new BoolOption("Popup: On-Shield Advantage", player.showOnShieldAdvantage));
         newPage.addOption(new BoolOption("Popup: On-Hit Advantage", player.showOnHitAdvantage));

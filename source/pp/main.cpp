@@ -6,6 +6,7 @@
 #include <gf/gf_scene.h>
 #include <gf/gf_heap_manager.h>
 #include <mu/menu.h>
+#include <memory.h>
 
 #include "pp/main.h"
 #include "pp/ui.h"
@@ -26,8 +27,12 @@ namespace PP {
 bool initialized = false;
 
 
+/*
+ * This is quite brittle. This gets called without saving regs, and if too much is done
+ * in this function crashes will occur.
+*/
 void checkMenuPaused(char* gfTaskSchedulerInst) {
-    // OSReport("Visible: %s, paused: %s\n", visible ? "T" : "F", paused ? "T" : "F");
+    //OSReport("Visible: %s, paused: %s\n", visible ? "T" : "F", paused ? "T" : "F");
     //OSReport("Trying to read gfTaskSchedulerInst @ 0x%0X\n", gfTaskSchedulerInst);
     if (punchMenu.paused && punchMenu.visible) { gfTaskSchedulerInst[0xB] |= 0x8; }
     else { gfTaskSchedulerInst[0xB] &= ~0x8; }
@@ -102,12 +107,11 @@ void printFighterState(PlayerData& playerData) {
 bool needsInitializing() {
     if (initialized) return false;
     int fighters = g_ftManager->getEntryCount();
+    if (fighters == 0) { return false; }
     for (char i =  0; i < fighters; i++) {
         int entryId = g_ftManager->getEntryIdFromIndex(i);
         int opStatus = g_ftManager->getFighterOperationStatus(entryId);
-        #ifdef PP_INIT_DEBUG
-        OSReport("Fighter %d status %d\n", entryId, opStatus);
-        #endif
+        DEBUG_INIT("Fighter %d status %d\n", entryId, opStatus);
         if (opStatus == 0) { 
             return false;
         }
@@ -119,24 +123,23 @@ bool needsInitializing() {
 // main entry point.
 void updatePreFrame() {
     renderables.renderPre();
-
-    // TODO: tried to use gfSceneManager to do this, but both training and normal fights are scMelee, so something else
-    // is needed to distinguish them.
-    SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
-
+    frameCounter += 1;
     #ifdef PP_DEBUG_MEM
     if (frameCounter % 300 == 0) {
         gfHeapManager::dumpList();
     }
     #endif
 
+
+    // TODO: tried to use gfSceneManager to do this, but both training and normal fights are scMelee, so something else
+    // is needed to distinguish them.
+    SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
+
     // Do nothing if not in a game.
     if (sceneType == VS || sceneType == TRAINING_MODE_MMS) {
         if (!initialized) {
             if (!needsInitializing()) {
-                #ifdef PP_DEBUG_INIT
-                OSReport("Bailing out to start early\n");
-                #endif
+                DEBUG_INIT("Bailing out to start early\n");
                 startNormalDraw();
                 return;
             } else {
@@ -147,9 +150,11 @@ void updatePreFrame() {
                 // punch menu because the punch menu wants to be setup with gathered data,
                 // whereas the framecounter wants to be set before anything happens.
                 frameCounter = 0;
+                if (allPlayerData == NULL) {
+                    allPlayerData = new PlayerData[PP_MAX_PLAYERS];
+                }
             }
         }
-        frameCounter += 1;
 
         int fighterCount;
         fighterCount = g_ftManager->getEntryCount();
@@ -222,11 +227,8 @@ void updatePreFrame() {
             initialized = false;
             punchMenu.cleanup();
 
-            for (int i = 0; i < PP_MAX_PLAYERS; i++) {
-                allPlayerData[i].cleanup();
-            }
             delete[] allPlayerData;
-            allPlayerData = new PlayerData[PP_MAX_PLAYERS];
+            allPlayerData = NULL;
         }
     }
 
@@ -320,9 +322,7 @@ void gatherData(u8 playerEntryIdx) {
 
         OSReport("Initializing P%d: %s\n", playerNumber, playerData.fighterName);
 
-        #ifdef PP_DEBUG_INIT
-        OSReport("Player %d op type: %d\n", playerNumber, opType);
-        #endif
+        DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
         if (opType != 0) {
             allPlayerData[playerNumber].showOnShieldAdvantage = false;
             allPlayerData[playerNumber].showOnHitAdvantage = false;
@@ -352,20 +352,22 @@ void gatherData(u8 playerEntryIdx) {
     ftCancelModule* cancelModule = reinterpret_cast<ftCancelModule*>(fighter->getCancelModule());
 
 
-    #ifdef PP_DEBUG_FIGHTER_ENTRIES
-    OSReport(
+    DEBUG_FIGHTERS(
         "Player: %d\n"
-        "  char type: 0x%X\n" 
-        "  entryId: 0x%X\n"
-        "  fighter addr: 0x%X\n"
+        "\tchar type: 0x%X\n" 
+        "\tentryId: 0x%X\n"
+        "\tfighter addr: 0x%X\n"
         ,
-        player, character, entryId, fighter
+        playerNumber, playerData.charId, entryId, fighter
     );
-    #endif
 
-    #ifdef PP_DEBUG_MODULE_LOCATIONS
-    OSReport("Module Locations:\n\tworkModule: %x\n/\tstatusModule: %x\n\tmotionModule: %x\n", workModule, statusModule, motionModule);
-    #endif
+    DEBUG_FIGHTERS(
+        "\tModule Locations:\n"
+        "\t\tworkModule: 0x%x\n"
+        "\t\tstatusModule: 0x%x\n"
+        "\t\tmotionModule: 0x%x\n"
+        ,
+        workModule, statusModule, motionModule);
 
     if (statusModule != NULL) {
         /* Status module stuff is mostly collected via the StatusChangeWatcher using the event system. */
@@ -401,11 +403,9 @@ void gatherData(u8 playerEntryIdx) {
                 playerData.advantageBonusCounter = 0;
             }
 
-            /*
-            OSReport("Player %d shieldstun: %d/%d\n",
+            DEBUG_FIGHTERS("Player %d shieldstun: %d/%d\n",
                 playerData.playerNumber, currentData.shieldstun, playerData.maxShieldstun
             );
-            */
         } else {
             playerData.maxShieldstun = 0;
         }
@@ -507,13 +507,7 @@ void checkAttackTargetActionable(u8 playerNum) {
             /* > 30 frames is generally judge-able with a human eye anyway. */
             if (advantage > -50 && advantage < 50) {
                 if (player.showOnShieldAdvantage) {
-                    #ifdef PP_DEBUG_POPUP
-                    OSReport("Displaying popup for attacker: %d\n", player.playerNumber);
-                    #endif
-
-                    snprintf(strManipBuffer, PP_STR_MANIP_SIZE, "Advantage: %d\n", advantage);
-                    OSReport(strManipBuffer);
-                    Popup& popup = *(new Popup(strManipBuffer));
+                    Popup& popup = *(new Popup("Advantage: %d\n", advantage));
                     popup.coords = getHpPopupBoxCoords(player.playerNumber);
                     popup.durationSecs = 3;
                     addPopup(player.playerNumber, popup);

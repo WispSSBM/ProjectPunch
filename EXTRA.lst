@@ -16,3 +16,4 @@
 801f46cc:GXSetBlendMode
 801f4748:GXSetAlphaUpdate
 801f471c:GXSetColorUpdate
+803f0d4c:__destroy_new_array

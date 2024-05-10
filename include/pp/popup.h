@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstring>
+#include <cstdio>
+#include <stdarg.h>
+
 #include "pp/graphics/drawable.h"
 #include "pp/graphics/text_printer.h" 
 #include "pp/common.h"
@@ -9,14 +12,25 @@ namespace PP {
 
 class Popup {
     public:
-        Popup(const char* text) {
+        Popup(const char* text, ...) {
             id = 0;
             fps = 60;
             durationSecs = 5;
             minWidth = 100;
-            this->text = new char[strlen(text)];
+            int textLen = 0;
+            this->text = new char[256];
+
+            va_list args;
+            va_start(args, text);
+            textLen = vsnprintf(this->text, 256, text, args);
+            DEBUG_POPUPS("Showing popup [\n  %s] on frame %d\n", this->text, frameCounter);
+
+            if (textLen >= 256 || textLen < 0) {
+                this->text[255] = '\0';
+            }
+            va_end(args);
+
             startFrame = frameCounter;
-            strcpy(this->text, text);
         };
 
         ~Popup() { delete[] this->text; };
