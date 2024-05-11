@@ -18,6 +18,7 @@
 #include "pp/anim_cmd_utils.h"
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
+#include "pp/ledge_tech.h"
 
 using namespace PP::Graphics;
 using namespace PP::Input;
@@ -337,6 +338,8 @@ void gatherData(u8 playerEntryIdx) {
         StatusChangeWatcher* statusChangeWatcher = new StatusChangeWatcher(&allPlayerData[playerNumber]);
         statusChangeWatcher->registerWith(fighter);
         allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
+
+        playerData.initLedgeTechWatcher(*fighter);
     }
 
     playerData.prepareNextFrame();
@@ -350,7 +353,6 @@ void gatherData(u8 playerEntryIdx) {
     soStatusModule* statusModule = modules.getStatusModule();
     soMotionModuleImpl* motionModule = dynamic_cast<soMotionModuleImpl*>(modules.getMotionModule());
     ftCancelModule* cancelModule = reinterpret_cast<ftCancelModule*>(fighter->getCancelModule());
-
 
     DEBUG_FIGHTERS(
         "Player: %d\n"
@@ -451,6 +453,10 @@ void gatherData(u8 playerEntryIdx) {
         }
     }
     #pragma endregion
+
+    if (playerData.enableLedgeTechWatcher) {
+        playerData.ledgeTechWatcher->process(*fighter);
+    }
 }
 
 void resolveAttackTarget(u8 playerIdx) {

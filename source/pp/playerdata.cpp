@@ -7,6 +7,7 @@
 #include "pp/playerdata.h"
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
+#include "pp/ledge_tech.h"
 
 namespace PP {
 
@@ -61,8 +62,11 @@ PlayerData::PlayerData() {
     enableDashOverlay = false;
     enableIasaOverlay = false;
 
+    enableLedgeTechWatcher = true;
+
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
+    ledgeTechWatcher = NULL;
     
     DEBUG_CTOR("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
 };
@@ -75,6 +79,10 @@ PlayerData::~PlayerData() {
 
     if (statusChangeWatcher != NULL) {
         delete statusChangeWatcher;
+    }
+
+    if (ledgeTechWatcher != NULL) {
+        delete ledgeTechWatcher;
     }
 
     delete current;
@@ -348,8 +356,15 @@ void PlayerData::setAction(u16 newAction) {
         occupiedActionableStateThisFrame = true;
     }
     memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
-
 }
+
+void PlayerData::initLedgeTechWatcher(Fighter& fighter)
+{
+    LedgeTechWatcher* ledgeTechWatcher = new LedgeTechWatcher(&allPlayerData[playerNumber]);
+    ledgeTechWatcher->registerWith(&fighter);
+    allPlayerData[playerNumber].ledgeTechWatcher = ledgeTechWatcher;
+}
+
 #pragma endregion
 
 

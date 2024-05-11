@@ -16,6 +16,7 @@ struct PlayerDisplayOptions;
 
 class AnimCmdWatcher;
 class StatusChangeWatcher;
+class LedgeTechWatcher;
 
 // 0 indexed unlike the 
 union InterruptGroupStates {
@@ -127,15 +128,17 @@ struct PlayerData {
     // These aren't bitfields because you can't take a pointer to a bitfield, and that
     // would mess with the menu system.
     bool showOnHitAdvantage;       // 0x34
-    bool showOnShieldAdvantage;    // 0x38
-    bool showActOutOfLag;          // 0x3C
-    bool showFighterState;         // 0x40
-    bool enableActionableOverlay;  // 0x44
-    bool enableDashOverlay;        // 0x48
-    bool enableIasaOverlay;        // 0x4C
+    bool showOnShieldAdvantage;    // 0x35
+    bool showActOutOfLag;          // 0x36
+    bool showFighterState;         // 0x47
+    bool enableActionableOverlay;  // 0x48
+    bool enableDashOverlay;        // 0x49
+    bool enableIasaOverlay;        // 0x4A
+    bool enableLedgeTechWatcher;   // 0x4B
 
-    AnimCmdWatcher* animCmdWatcher;  // 0x50
-    StatusChangeWatcher* statusChangeWatcher; // 0x54
+    AnimCmdWatcher* animCmdWatcher;  // 0x4C
+    StatusChangeWatcher* statusChangeWatcher; // 0x50
+    LedgeTechWatcher* ledgeTechWatcher;
 
     /* aliases for fields on Current*/
     u16 action() const;
@@ -161,6 +164,8 @@ struct PlayerData {
     bool inIasa() const;
     void prepareNextFrame();
     void setAction(u16 newAction);
+
+    void initLedgeTechWatcher(Fighter& fighter);
 
     /* Lifecycle methods */
     void resetTargeting();
