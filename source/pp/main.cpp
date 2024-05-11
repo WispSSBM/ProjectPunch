@@ -513,10 +513,10 @@ void checkAttackTargetActionable(u8 playerNum) {
             /* > 30 frames is generally judge-able with a human eye anyway. */
             if (advantage > -50 && advantage < 50) {
                 if (player.showOnShieldAdvantage) {
-                    Popup& popup = *(new Popup("Advantage: %d\n", advantage));
+                    Popup& popup = *player.createPopup();
+                    popup.printf("Advantage: %d\n", advantage);
                     popup.coords = getHpPopupBoxCoords(player.playerNumber);
                     popup.durationSecs = 3;
-                    addPopup(player.playerNumber, popup);
                 }
             }
 

@@ -119,6 +119,7 @@ namespace PP {
     #define PP_DEBUG_MENU
     #define PP_DEBUG_MEM
     #define PP_DEBUG_TEXT_PRINTER
+    #define PP_DEBUG_LEDGETECH
     #endif
 
     /* Conditional print functions */
@@ -168,6 +169,12 @@ namespace PP {
     #define DEBUG_POPUPS(...) (OSReport(__VA_ARGS__))
     #else
     #define DEBUG_POPUPS(...)
+    #endif
+
+    #ifdef PP_DEBUG_LEDGETECH
+    #define DEBUG_LEDGETECH(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_LEDGETECH(...)
     #endif
 
 

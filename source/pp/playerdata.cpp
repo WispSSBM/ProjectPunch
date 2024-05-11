@@ -2,6 +2,7 @@
 
 #include <OS/OSError.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <memory.h>
 
 #include "pp/playerdata.h"
@@ -245,6 +246,14 @@ bool PlayerData::resolveTargetActionable() {
     return false;
 }
 
+
+Popup* PlayerData::createPopup()
+{
+    Popup* popup = new Popup();
+    playerPopups[playerNumber].append(*popup);
+    return popup;
+}
+
 #pragma region current_aliases
 u16 PlayerData::action() const {
     return (u16)this->current->action;
@@ -317,12 +326,41 @@ bool PlayerDataOnFrame::inIasa() const {
         // It comes up occasionally with peach float dair.
         return canAutocancel();
     } else {
-        return canCancel || (ig.groundAttack | ig.groundDodge | ig.groundGrab | ig.groundGuard | ig.groundJump | ig.groundSpecial);
+        return inGroundedIasa();
     }
+}
+
+bool PlayerDataOnFrame::inGroundedIasa() const {
+    const InterruptGroupStates& ig = interruptGroups;
+    return canCancel || (ig.groundAttack | ig.groundDodge | ig.groundGrab | ig.groundGuard | ig.groundJump | ig.groundSpecial);
 }
 
 bool PlayerData::inIasa() const {
     return current->inIasa();
+}
+
+bool PlayerData::inGroundedIasa() const
+{
+    return current->inGroundedIasa();
+}
+
+bool PlayerData::isGroundedActionable()
+{
+    if (_computedGroundedActionable) { return _groundedActionable; }
+    // Cleared every frame.
+    _computedGroundedActionable = true;
+
+
+    _groundedActionable = false;
+    
+    if (current->isAirborne) {
+        return _groundedActionable;
+    }
+
+    _groundedActionable = _groundedActionable || (occupiedActionableStateThisFrame);
+    _groundedActionable = _groundedActionable || (inGroundedIasa());
+
+    return _groundedActionable;
 }
 
 bool PlayerDataOnFrame::canAutocancel() const {
@@ -344,6 +382,8 @@ void PlayerData::prepareNextFrame() {
     current->isAirborne = prev->isAirborne;
     didActionChange = false;
     occupiedActionableStateThisFrame = isDefinitelyActionable(current->action);
+
+    _computedGroundedActionable = false;
 }
 
 void PlayerData::setAction(u16 newAction) {

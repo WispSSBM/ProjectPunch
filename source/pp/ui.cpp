@@ -18,12 +18,6 @@ extern u32 frameCounter;
 
 /* EXTERN DEFS */
 PpunchMenu& punchMenu = *(new PpunchMenu());
-linkedlist<Popup> playerPopups[PP_MAX_PLAYERS] = {
-    linkedlist<Popup>(),
-    linkedlist<Popup>(),
-    linkedlist<Popup>(),
-    linkedlist<Popup>()
-};
 /************/
 
 void ui_cpp_static_dtor() {

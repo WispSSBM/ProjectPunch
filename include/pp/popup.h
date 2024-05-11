@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <stdarg.h>
 
+#include "pp/collections/linkedlist.h"
 #include "pp/graphics/drawable.h"
 #include "pp/graphics/text_printer.h" 
 #include "pp/common.h"
@@ -12,7 +13,7 @@ namespace PP {
 
 class Popup {
     public:
-        Popup(const char* text, ...) {
+        Popup() {
             id = 0;
             fps = 60;
             durationSecs = 5;
@@ -20,20 +21,11 @@ class Popup {
             int textLen = 0;
             this->text = new char[256];
 
-            va_list args;
-            va_start(args, text);
-            textLen = vsnprintf(this->text, 256, text, args);
-            DEBUG_POPUPS("Showing popup [\n  %s] on frame %d\n", this->text, frameCounter);
-
-            if (textLen >= 256 || textLen < 0) {
-                this->text[255] = '\0';
-            }
-            va_end(args);
-
             startFrame = frameCounter;
         };
 
         ~Popup() { delete[] this->text; };
+        void printf(const char* fmt, ...);
         void draw(Graphics::TextPrinter& printer);
         float percentElapsed();
         bool expired();
@@ -76,5 +68,6 @@ class PopupConfig {
         Color highlightColor;
 };
 
+extern Collections::linkedlist<Popup> playerPopups[PP_MAX_PLAYERS];
 extern PopupConfig gPopupConfig;
 } // namespace

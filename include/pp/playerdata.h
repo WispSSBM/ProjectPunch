@@ -5,6 +5,7 @@
 
 #include "pp/actions.h"
 #include "pp/common.h"
+#include "pp/popup.h"
 
 namespace PP {
 
@@ -79,6 +80,7 @@ struct PlayerDataOnFrame {
     InterruptGroupStates interruptGroups; // 0x25?
 
     bool inIasa() const;
+    bool inGroundedIasa() const;
     bool canAutocancel() const;
     const char* subactionStr() const;
     bool getLowRABit(u32 idx) const;
@@ -162,6 +164,8 @@ struct PlayerData {
     bool inActionableState() const;
     bool inAttackState() const;
     bool inIasa() const;
+    bool inGroundedIasa() const;
+    bool isGroundedActionable();
     void prepareNextFrame();
     void setAction(u16 newAction);
 
@@ -171,7 +175,12 @@ struct PlayerData {
     void resetTargeting();
     bool resolvePlayerActionable();
     bool resolveTargetActionable();
+    Popup* createPopup();
     int debugStr(char* buffer);
+
+    private:
+    bool _computedGroundedActionable;
+    bool _groundedActionable;
 };
 
 struct PlayerDisplayOptions {

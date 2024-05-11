@@ -8,6 +8,12 @@ using namespace PP::Graphics;
 using namespace PP::Collections;
 
 PopupConfig gPopupConfig = PopupConfig();
+linkedlist<Popup> playerPopups[PP_MAX_PLAYERS] = {
+    linkedlist<Popup>(),
+    linkedlist<Popup>(),
+    linkedlist<Popup>(),
+    linkedlist<Popup>()
+};
 
 
 void Popup::draw(TextPrinter& printer) {
@@ -82,6 +88,20 @@ void Popup::draw(TextPrinter& printer) {
         shapes.set(i-1, nm2);
         shapes.set(i-2, n);
     }
+}
+
+void Popup::printf(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    int textLen = vsnprintf(this->text, 256, fmt, args);
+    DEBUG_POPUPS("Showing popup [\n  %s] on frame %d\n", this->text, startFrame);
+
+    if (textLen >= 256 || textLen < 0) {
+        this->text[255] = '\0';
+    }
+    va_end(args);
 }
 
 float Popup::percentElapsed() {

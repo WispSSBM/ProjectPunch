@@ -1,7 +1,19 @@
 #include "pp/common.h"
 #include "pp/status_change_watcher.h"
+#include "pp/collections/vector.h"
 
 namespace PP {
+
+enum FrameType {
+    LEDGE_FT_OTHER = 0,
+    LEDGE_FT_CLIFFWAIT,
+    LEDGE_FT_FALLING,
+    LEDGE_FT_JUMPING,
+    LEDGE_FT_TWSTARTUP,
+    LEDGE_FT_AIRDODGE,
+    LEDGE_FT_LANDING,
+    LEDGE_FT_GALINT
+};
 
 class LedgeTechWatcher: public StatusChangeWatcher {
     public:
@@ -11,30 +23,37 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         };
 
         void didCatchCliff(int fighterFrame);
-        void didLeaveCliffOther(int fighterFrame);
+        void didLeaveCliff(int fighterFrame);
+        void didFinishLedgeDash(int fighterFrame);
         void didStartCliffJump(int fighterFrame);
         void didStartFall(int fighterFrame);
+
         bool shouldStopWatching();
         void resetState();
         void updateCurrentFrameCounter(int statusKind);
 
-        void drawRectForFrame(int idx, Color color) const;
-        void drawLedgeDash() const;
+        Color getFrameColor(FrameType frameType) const;
+        void drawLedgeDash();
+        void drawFrame(float startAllPosX, int idx) const;
 
         virtual void notifyEventChangeStatus(int statusKind, int prevStatusKind, soStatusData* statusData, soModuleAccesser* moduleAccesser);
         virtual void process(Fighter& fighter);
         virtual bool isEnabled() { return playerData->enableLedgeTechWatcher; };
     private:
-        int cliffCatchFrame;
-        bool _didGrabLedge;
+        bool _isOnLedge;
+        bool _didShowLedgeDash;
 
         int* _currentFrameCounter;
-        int _cliffWaitStartFrame;
-        int _cliffElapsedPrev;
-        int _cliffElapsed;
+        FrameType _currentFrameType;
         int _remainingLedgeIntan;
+
+        // frames on which things happened.
+        int _cliffWaitStartFrame;
         int _tourneyWinnerActionableFrame;
 
+        // counters
+        int _totalFrames;
+        int _totalFramesPrev;
         int _cliffWaitFrames;
         int _fallingFrames;
         int _jumpingFrames;
@@ -43,6 +62,6 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         int _specialLandFrames;
         int _otherFrames;
 
+        FrameType _framesList[0x80];
 };
-
 } // namespace
