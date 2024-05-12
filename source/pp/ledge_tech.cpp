@@ -4,17 +4,34 @@
 #include "pp/actions.h"
 #include "pp/graphics/draw.h"
 #include "pp/graphics/drawable.h"
+#include "pp/graphics/text_printer.h"
 
 #include <it/it_manager.h>
 
 #define LA_INT_FRAME_COUNT 78
 
+const char* g_frameTypeLabels[] = {
+    "Ledge", 
+    "Falling",
+    "Jumping",
+    "T.Winner",
+    "Airdodge",
+    "Attack",
+    "Landing",
+    "Galint",
+    "Other"
+};
 
-void PP::LedgeTechWatcher::didCatchCliff(int fighterFrame)
-{
+void PP::LedgeTechWatcher::didCatchCliff(int fighterFrame) {
     resetState();
     _isOnLedge = true;
+}
+
+void PP::LedgeTechWatcher::didCatchCliffEnd(int fighterFrame)
+{
+    DEBUG_LEDGETECH("Left ledge on frame %d\n", fighterFrame - _cliffWaitStartFrame);
     _cliffWaitStartFrame = fighterFrame;
+    _currentFrameCounter = &_cliffWaitFrames;
 }
 
 void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame)
@@ -22,6 +39,24 @@ void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame)
     DEBUG_LEDGETECH("Left ledge on frame %d\n", fighterFrame - _cliffWaitStartFrame);
     _isOnLedge = false;
 }
+
+void PP::LedgeTechWatcher::didStartCliffJump(int fighterFrame) {
+    DEBUG_LEDGETECH("Started cliffjump on frame %d\n", fighterFrame - _cliffWaitStartFrame);
+}
+
+void PP::LedgeTechWatcher::didStartCliffRoll(int fighterFrame) {
+    DEBUG_LEDGETECH("Started cliffroll on rame %d\n", fighterFrame - _cliffWaitStartFrame);
+}
+
+void PP::LedgeTechWatcher::didStartCliffAttack(int fighterFrame) {
+    DEBUG_LEDGETECH("Started cliffattack on frame %d\n", fighterFrame - _cliffWaitStartFrame);
+}
+
+void PP::LedgeTechWatcher::didStartCliffClimb(int fighterFrame) {
+    DEBUG_LEDGETECH("Started neutral getup on frame %d\n", fighterFrame - _cliffWaitStartFrame);
+}
+
+void PP::LedgeTechWatcher::didStartFall(int fighterFrame) {}
 
 void PP::LedgeTechWatcher::didFinishLedgeDash(int fighterFrame)
 {
@@ -53,17 +88,30 @@ void PP::LedgeTechWatcher::notifyEventChangeStatus(int statusKind, int prevStatu
 
     int fighterFrame = itManager::getInstance()->m_framesIntoCurrentGame;
 
-    if (prevStatusKind == ACTION_CLIFFCATCH && statusKind == ACTION_CLIFFWAIT) {
+
+    if (statusKind == ACTION_CLIFFCATCHSTART) {
         didCatchCliff(fighterFrame);
-        return;
+    }
+    else if (statusKind == ACTION_CLIFFWAIT) {
+        didCatchCliffEnd(fighterFrame);
     } 
+    else if (prevStatusKind == ACTION_CLIFFWAIT) {
+        didLeaveCliff(fighterFrame);
+
+        if (statusKind == ACTION_CLIFFESCAPE) {
+            didStartCliffRoll(fighterFrame);
+        } else if  (statusKind == ACTION_CLIFFATTACK) {
+            didStartCliffAttack(fighterFrame);
+        } else if (statusKind == ACTION_CLIFFCLIMB) {
+            didStartCliffClimb(fighterFrame);
+        } else if (statusKind == ACTION_FALL) {
+            didStartFall(fighterFrame);
+        }
+    }
 
     updateCurrentFrameCounter(statusKind);
     
     
-    if (prevStatusKind == ACTION_CLIFFWAIT) {
-        didLeaveCliff(fighterFrame);
-    }
 }
 
 void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
@@ -80,6 +128,7 @@ void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
     case ACTION_CLIFFWAIT:
         _currentFrameCounter = &_cliffWaitFrames;
         _currentFrameType = LEDGE_FT_CLIFFWAIT;
+        break;
     case ACTION_CLIFFJUMPSTART: 
         _currentFrameCounter = &_twStartupFrames; 
         _currentFrameType = LEDGE_FT_TWSTARTUP;
@@ -88,6 +137,10 @@ void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
     case ACTION_CLIFFJUMPEND: 
         _currentFrameCounter = &_jumpingFrames;
         _currentFrameType = LEDGE_FT_JUMPING;
+        break;
+    case ACTION_AERIALATTACK:
+        _currentFrameCounter = &_attackingFrames;
+        _currentFrameType = LEDGE_FT_ATTACK;
         break;
     case ACTION_LANDINGHEAVY:
     case ACTION_LANDINGLIGHT:
@@ -126,43 +179,30 @@ void PP::LedgeTechWatcher::resetState() {
     _didShowLedgeDash = false;
 }
 
-#define LEDGEDASH_START_Y 50.0f
-#define LEDGEDASH_BOX_WIDTH 10
 void PP::LedgeTechWatcher::drawFrame(float startAllPosX, int idx) const {
     float startPosX =  startAllPosX + (idx*LEDGEDASH_BOX_WIDTH);
     float endPosX = startPosX + LEDGEDASH_BOX_WIDTH;
     Color color = getFrameColor(_framesList[idx]);
-    Graphics::Drawable* d = new Graphics::Rect(
-        0, 120, color.gxColor,
-        LEDGEDASH_START_Y, LEDGEDASH_START_Y + LEDGEDASH_BOX_WIDTH,
-        startPosX, endPosX,
-        true
-    );
 
-    Graphics::renderables.items.preFrame.push(d);
-
-    d = new Graphics::RectOutline(
-        0, 120, Color(0x000000FF).gxColor,
-        LEDGEDASH_START_Y, LEDGEDASH_START_Y + LEDGEDASH_BOX_WIDTH,
-        startPosX, endPosX,
-        12,
-        true
-    );
-
-    Graphics::renderables.items.preFrame.push(d);
+    Graphics::renderables.items.preFrame.push(new LedgeTechFrameDrawable(
+        color.gxColor, 0, 120,
+        LEDGEDASH_START_Y, LEDGEDASH_START_Y + LEDGEDASH_BOX_HEIGHT,
+        startPosX, endPosX
+    ));
 }
 
-PP::Color PP::LedgeTechWatcher::getFrameColor(FrameType frameType) const {
+PP::Color PP::LedgeTechWatcher::getFrameColor(FrameType frameType) {
     switch(frameType) {
-        case LEDGE_FT_CLIFFWAIT: return 0xFF00FFFF; // magenta
-        case LEDGE_FT_FALLING: return 0xFF0000FF;   // red
-        case LEDGE_FT_TWSTARTUP: return 0x555555FF; // grey
-        case LEDGE_FT_JUMPING: return 0x00ccccFF; // cyan
-        case LEDGE_FT_LANDING: return 0x555555FF; // grey
-        case LEDGE_FT_GALINT: return 0x00FF00FF; // green
-        case LEDGE_FT_OTHER: return 0xFFAA00FF; // orange
-        case LEDGE_FT_AIRDODGE: return 0xad876cFF; // brown
-        default: return 0xFFFFFFFF;
+        case LEDGE_FT_CLIFFWAIT: return 0x444444BB; // grey
+        case LEDGE_FT_FALLING:   return 0x008A00BB; // green
+        case LEDGE_FT_TWSTARTUP: return 0x40CCCCBB; // cyan
+        case LEDGE_FT_JUMPING:   return 0xFFFF00BB; // yellow
+        case LEDGE_FT_LANDING:   return 0xFF3333BB; // red
+        case LEDGE_FT_GALINT:    return 0x4242FFBB; // blue
+        case LEDGE_FT_OTHER:     return 0xCC8800BB; // orange
+        case LEDGE_FT_ATTACK:    return 0xCCCCCCBB; // light grey
+        case LEDGE_FT_AIRDODGE:  return 0xFF00FFBB; // magenta
+        default: return 0xFFFFFFBB;
     }
 }
 
@@ -186,13 +226,21 @@ void PP::LedgeTechWatcher::drawLedgeDash() {
         _framesList[i+j] = LEDGE_FT_GALINT;
         drawFrame(startPosX, i+j);
     }
+
+    Graphics::renderables.items.preFrame.push(new LedgeTechLegendDrawable(
+        0, 120, LEDGEDASH_START_Y - 50, LEDGEDASH_LEGEND_START_X
+    ));
 }
 
 void PP::LedgeTechWatcher::process(Fighter& fighter)
 {
     if (!isEnabled()) { return; }
 
-    if ( _isOnLedge || _cliffWaitStartFrame != -1 ) {
+    if ( _isOnLedge && _cliffWaitStartFrame == -1) {
+        /* Still in cliffcatch */
+    }
+
+    if ( _cliffWaitStartFrame != -1 ) {
         int fighterFrame = itManager::getInstance()->m_framesIntoCurrentGame;
 
         _totalFrames = (fighterFrame - _cliffWaitStartFrame) + 1;
@@ -244,4 +292,53 @@ void PP::LedgeTechWatcher::process(Fighter& fighter)
         }
 
     }
+}
+
+void PP::LedgeTechFrameDrawable::draw() {
+    Graphics::draw2DRectangle(color, top, bottom, left-1, right, 0);
+    Graphics::draw2DRectOutline(Color(0x000000FF).gxColor, top, bottom, left-1, right, 6);
+}
+
+void PP::LedgeTechLegendDrawable::draw() {
+    Coord2DF pos = Coord2DF(left, top);
+
+    for (int i = 0; i < sizeof(g_frameTypeLabels)/4; i++) {
+        LedgeTechFrameDrawable(
+            LedgeTechWatcher::getFrameColor((FrameType)i).gxColor,
+            0, 0,
+            pos.y, pos.y + LEDGEDASH_BOX_HEIGHT,
+            pos.x, pos.x + LEDGEDASH_BOX_WIDTH
+        ).draw();
+
+        pos.x += LEDGEDASH_LEGEND_ITEM_PADDING;
+    }
+
+    pos = Coord2DF(left, top);
+    Graphics::TextPrinter& printer = Graphics::printer;
+    printer.renderPre = true;
+
+    printer.boxBgColor = 0x00000000;
+    printer.boxBorderColor = 0;
+    printer.boxHighlightColor = 0;
+    printer.boxBorderWidth = 0;
+
+    printer.lineHeight = 10;
+    printer.setTextBorder(1);
+    printer.textBorderColor = 0x000000FF;
+    printer.setScale(gPopupConfig.fontScale, gPopupConfig.fontScaleMult, gPopupConfig.lineHeightMult);
+    printer.opacity = 0xFF;
+
+    printer.begin();
+    for (int i = 0; i < sizeof(g_frameTypeLabels)/4; i++) {
+        printer.setPosition(
+            pos.x - 15,
+            pos.y + LEDGEDASH_BOX_HEIGHT + LEDGEDASH_LEGEND_INTERNAL_PADDING
+        );
+        printer.print(g_frameTypeLabels[i]);
+        pos.x += LEDGEDASH_LEGEND_ITEM_PADDING;
+    }
+    printer.renderBoundingBox();
+
+    Graphics::setupDrawPrimitives();
+    Graphics::start2DDraw();
 }
