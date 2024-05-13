@@ -43,12 +43,13 @@ class Popup {
 class PopupConfig {
     public:
         PopupConfig(): 
-            textColor(0xFFFFFFFF), 
-            bgColor(COLOR_TRANSPARENT_GREY),
-            outlineColor(0x333333FF),
-            highlightColor(0xBBBBBBFF)
+            textColor(PP_COLOR_WHITE), 
+            bgColor(PP_COLOR_TRANSPARENT_GREY),
+            outlineColor(PP_COLOR_DARK_GREY),
+            highlightColor(PP_COLOR_LIGHT_GREY)
         {
-            if (g_GameGlobal->m_record->m_menuData.m_isWidescreen) {
+            isWidescreen = g_GameGlobal->m_record->m_menuData.m_isWidescreen;
+            if (isWidescreen) {
                 fontScale = Coord2DF(0.5112f, 0.7f);
             } else {
                 fontScale = Coord2DF(0.65f, 0.65f);
@@ -66,6 +67,7 @@ class PopupConfig {
         Color bgColor;
         Color outlineColor;
         Color highlightColor;
+        bool isWidescreen;
 };
 
 extern Collections::linkedlist<Popup> playerPopups[PP_MAX_PLAYERS];

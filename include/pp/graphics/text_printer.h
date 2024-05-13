@@ -31,8 +31,12 @@ struct TextPrinter {
     void setTextColor(Color color);
     void setTextBorder(Color color, float width = 1.f);
     void setScale(Coord2DF scaleDims, float scale, float lineHeight);
+
     void setPosition(float x, float y);
+    void setPosition(const Coord2DF& pos);
     void setMinWidth(float minWidth);
+    float getPositionX() const;
+    float getPositionY() const;
     Coord2DF getPosition() const;
 
     ms::CharWriter* charWriter;

@@ -11,9 +11,6 @@ namespace PP {
 /* TODO: Look into using the game's native frame counter. */
 u32 frameCounter = 0;
 char strManipBuffer[PP_STR_MANIP_SIZE]; // char(*)[PP_STR_MANIP_SIZE];
-const Color& COLOR_BLACK = 0x000000FFu;
-const Color& COLOR_WHITE = 0xFFFFFFFFu;
-const Color& COLOR_TRANSPARENT_GREY = 0x000000DD;
 
 /******/
 
@@ -39,6 +36,11 @@ void Color::applyAlpha(u8 alpha) {
 
 void Color::debugPrint(const char* title = "") {
     OSReport("%s - r: 0x%0x g: 0x%0x b: 0x%0x a: 0x%0x\n", title, this->r, this->b, this->g, this->a);
+}
+
+Coord2D::Coord2D(const Coord2DF& other) {
+    this->x = other.x;
+    this->y = other.y;
 }
 
 //hacky way to check if in game

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pp/entry.h"
 #include <types.h>
 #include <GX/GXTypes.h>
 #include <nw4r/ut/color.h>
@@ -17,6 +18,23 @@
 #define PP_POPUP_VERTICAL_OFFSET 50
 #define PP_MAX_PLAYERS 4
 
+#define PP_COLOR_NONE 0x00000000
+#define PP_COLOR_BLACK 0x000000FFu
+#define PP_COLOR_WHITE 0xFFFFFFFFu
+#define PP_COLOR_TRANSPARENT_GREY 0x000000DD
+#define PP_COLOR_GREY 0x444444FF
+#define PP_COLOR_DARK_GREY 0x333333FF
+#define PP_COLOR_GREEN 0x008A00FF
+#define PP_COLOR_CYAN 0x40CCCCFF
+#define PP_COLOR_YELLOW 0xFFFF00FF
+#define PP_COLOR_RED 0xFF3333FF
+#define PP_COLOR_BLUE 0x4242FFFF
+#define PP_COLOR_ORANGE 0xCC8800FF
+#define PP_COLOR_LIGHT_GREY 0xCCCCCCFF
+#define PP_COLOR_MAGENTA 0xFF00FFBB
+
+#define PP_CENTER_SCREEN_X 320
+
 #define WORK_MODULE_RA_VARS 1
 #define WORK_MODULE_LA_VARS 0
 
@@ -29,19 +47,21 @@ extern "C" const char* g_strTypedError;     // "%s Error: %d\n"
 extern GameGlobal* g_GameGlobal;
 namespace PP {
 
-    typedef struct Coord2D {
+    struct Coord2DF;
+    struct Coord2D {
         Coord2D() {
             x = 0;
             y = 0;
         }
 
         Coord2D(int x, int y) {this->x = x; this -> y = y;}
+        Coord2D(const Coord2DF& other);
 
         int x;
         int y;
-    } Coord2D;
+    };
 
-    typedef struct Coord2DF {
+    struct Coord2DF {
         Coord2DF() {
             x = 0;
             y = 0;
@@ -52,11 +72,16 @@ namespace PP {
             this -> y = y;
         }
 
+        Coord2DF(const Coord2D& other) {
+            this->x = other.x;
+            this->y = other.y;
+        }
+
         float x;
         float y;
-    } Coord2DF;
+    };
 
-    typedef union Color {
+    union Color {
         Color() { this->value = 0; }
         Color(u32 val): value(val) {};
         Color(nw4r::ut::Color utC): utColor(utC) {};
@@ -74,11 +99,8 @@ namespace PP {
             u8 b;
             u8 a;
         };
-    } Color;
+    };
 
-    extern const Color& COLOR_BLACK;
-    extern const Color& COLOR_WHITE;
-    extern const Color& COLOR_TRANSPARENT_GREY;
     extern Color globalOverlayColor;
 
 

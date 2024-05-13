@@ -14,6 +14,7 @@
 #define LEDGEDASH_LEGEND_START_X 60.0f
 #define LEDGEDASH_LEGEND_INTERNAL_PADDING 5
 #define LEDGEDASH_LEGEND_ITEM_PADDING 65
+#define LEDGEDASH_DEFAULT_DISPLAY_DURATION 300
 
 namespace PP {
 
@@ -50,17 +51,19 @@ public:
 
 class LedgeTechLegendDrawable: public Graphics::Drawable {
 public:
-    LedgeTechLegendDrawable(int delay, int lifetime, float top, float left): Graphics::Drawable() {
+    LedgeTechLegendDrawable(int delay, int lifetime, float top, float left, u8 opacity): Graphics::Drawable() {
         this->delay = delay;
         this->lifeTime = lifetime;
         this->top = top;
         this->left = left;
         this->is2D = true;
+        this->opacity = opacity;
     }
 
     void draw();
 
     float top, left;
+    u8 opacity;
 };
 
 class LedgeTechWatcher: public StatusChangeWatcher {
@@ -68,6 +71,8 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         LedgeTechWatcher(PlayerData* playerData): StatusChangeWatcher(playerData) {
             _currentFrameCounter = &_cliffWaitFrames;
             _cliffWaitStartFrame = -1;
+            _visualDurationFrames = LEDGEDASH_DEFAULT_DISPLAY_DURATION;
+            opacity = 0xBB;
         };
 
         void didCatchCliff(int fighterFrame);
@@ -91,6 +96,8 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         virtual void notifyEventChangeStatus(int statusKind, int prevStatusKind, soStatusData* statusData, soModuleAccesser* moduleAccesser);
         virtual void process(Fighter& fighter);
         virtual bool isEnabled() { return playerData->enableLedgeTechWatcher; };
+
+        u8 opacity;
     private:
         bool _isOnLedge;
         bool _didShowLedgeDash;
@@ -98,6 +105,7 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         int* _currentFrameCounter;
         FrameType _currentFrameType;
         int _remainingLedgeIntan;
+        int _visualDurationFrames;
 
         // frames on which things happened.
         int _cliffWaitStartFrame;

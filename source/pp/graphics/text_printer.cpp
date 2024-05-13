@@ -151,6 +151,11 @@ void TextPrinter::setScale(Coord2DF scaleDims, float multiplier, float lineHeigh
     this->lineHeight = this->scale.y * lineHeightMult;
 }
 
+void TextPrinter::setPosition(const Coord2DF& pos) {
+    DEBUG_TEXT_PRINTER("TextPrinter::setPosition(%f, %f);\n", pos.x, pos.y);
+    charWriter->SetCursor(pos.x, pos.y, 0);
+}
+
 void TextPrinter::setPosition(float x, float y) {
     DEBUG_TEXT_PRINTER("TextPrinter::setPosition(%f, %f);\n", x, y);
     charWriter->SetCursor(x, y, 0);
@@ -161,7 +166,14 @@ void TextPrinter::setMinWidth(float minWidth) {
 }
 
 Coord2DF TextPrinter::getPosition() const {
-    return Coord2DF(charWriter->GetCursorX(), charWriter->GetCursorY());
+    return Coord2DF(charWriter->m_xPos, charWriter->m_yPos);
+}
+
+float TextPrinter::getPositionX() const {
+    return this->charWriter->GetCursorX();
+}
+float TextPrinter::getPositionY() const {
+    return this->charWriter->GetCursorY();
 }
 
 void TextPrinter::printf(const char* fmt, ...) {

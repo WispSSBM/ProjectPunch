@@ -185,7 +185,7 @@ void PP::LedgeTechWatcher::drawFrame(float startAllPosX, int idx) const {
     Color color = getFrameColor(_framesList[idx]);
 
     Graphics::renderables.items.preFrame.push(new LedgeTechFrameDrawable(
-        color.gxColor, 0, 120,
+        color.gxColor, 0, _visualDurationFrames,
         LEDGEDASH_START_Y, LEDGEDASH_START_Y + LEDGEDASH_BOX_HEIGHT,
         startPosX, endPosX
     ));
@@ -193,30 +193,24 @@ void PP::LedgeTechWatcher::drawFrame(float startAllPosX, int idx) const {
 
 PP::Color PP::LedgeTechWatcher::getFrameColor(FrameType frameType) {
     switch(frameType) {
-        case LEDGE_FT_CLIFFWAIT: return 0x444444BB; // grey
-        case LEDGE_FT_FALLING:   return 0x008A00BB; // green
-        case LEDGE_FT_TWSTARTUP: return 0x40CCCCBB; // cyan
-        case LEDGE_FT_JUMPING:   return 0xFFFF00BB; // yellow
-        case LEDGE_FT_LANDING:   return 0xFF3333BB; // red
-        case LEDGE_FT_GALINT:    return 0x4242FFBB; // blue
-        case LEDGE_FT_OTHER:     return 0xCC8800BB; // orange
-        case LEDGE_FT_ATTACK:    return 0xCCCCCCBB; // light grey
-        case LEDGE_FT_AIRDODGE:  return 0xFF00FFBB; // magenta
-        default: return 0xFFFFFFBB;
+        case LEDGE_FT_CLIFFWAIT: return PP_COLOR_GREY;
+        case LEDGE_FT_FALLING:   return PP_COLOR_GREEN;
+        case LEDGE_FT_TWSTARTUP: return PP_COLOR_CYAN;
+        case LEDGE_FT_JUMPING:   return PP_COLOR_YELLOW;
+        case LEDGE_FT_LANDING:   return PP_COLOR_RED;
+        case LEDGE_FT_GALINT:    return PP_COLOR_BLUE;
+        case LEDGE_FT_OTHER:     return PP_COLOR_ORANGE;
+        case LEDGE_FT_ATTACK:    return PP_COLOR_LIGHT_GREY;
+        case LEDGE_FT_AIRDODGE:  return PP_COLOR_MAGENTA;
+        default: return PP_COLOR_WHITE;
     }
 }
 
 void PP::LedgeTechWatcher::drawLedgeDash() {
     int frameIdx, i, j, centerScreenX, totalWidth;
 
-    centerScreenX = 320;
-    /*
-    if (g_GameGlobal->m_record->m_menuData.m_isWidescreen) {
-        centerScreenX = 426;
-    }
-    */
     totalWidth = _totalFrames * LEDGEDASH_BOX_WIDTH;
-    float startPosX = centerScreenX - (totalWidth / 2.0f);
+    float startPosX = PP_CENTER_SCREEN_X - (totalWidth / 2.0f);
 
     for (i = 0; i < _totalFrames; i++) {
         drawFrame(startPosX, i);
@@ -228,7 +222,7 @@ void PP::LedgeTechWatcher::drawLedgeDash() {
     }
 
     Graphics::renderables.items.preFrame.push(new LedgeTechLegendDrawable(
-        0, 120, LEDGEDASH_START_Y - 50, LEDGEDASH_LEGEND_START_X
+        0, _visualDurationFrames, LEDGEDASH_START_Y - 50, LEDGEDASH_LEGEND_START_X, opacity
     ));
 }
 
@@ -303,8 +297,11 @@ void PP::LedgeTechLegendDrawable::draw() {
     Coord2DF pos = Coord2DF(left, top);
 
     for (int i = 0; i < sizeof(g_frameTypeLabels)/4; i++) {
+        Color color = LedgeTechWatcher::getFrameColor((FrameType)i);
+        color.a = opacity;
+
         LedgeTechFrameDrawable(
-            LedgeTechWatcher::getFrameColor((FrameType)i).gxColor,
+            color.gxColor,
             0, 0,
             pos.y, pos.y + LEDGEDASH_BOX_HEIGHT,
             pos.x, pos.x + LEDGEDASH_BOX_WIDTH
@@ -326,7 +323,7 @@ void PP::LedgeTechLegendDrawable::draw() {
     printer.setTextBorder(1);
     printer.textBorderColor = 0x000000FF;
     printer.setScale(gPopupConfig.fontScale, gPopupConfig.fontScaleMult, gPopupConfig.lineHeightMult);
-    printer.opacity = 0xFF;
+    printer.opacity = opacity;
 
     printer.begin();
     for (int i = 0; i < sizeof(g_frameTypeLabels)/4; i++) {

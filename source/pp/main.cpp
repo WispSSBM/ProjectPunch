@@ -19,6 +19,7 @@
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
 #include "pp/ledge_tech.h"
+#include "pp/graphics/watermark.h"
 
 using namespace PP::Graphics;
 using namespace PP::Input;
@@ -68,11 +69,11 @@ bool getRABit(const Fighter& fighter, u32 idx) {
     }
 }
 
-void printMessage(char const* msg, float xPos, float yPos, Color color = COLOR_WHITE){
+void printMessage(char const* msg, float xPos, float yPos, Color color = PP_COLOR_WHITE){
     OSReport("%s\n", msg);
     printer.setTextColor(color);
     printer.renderPre = true;
-    printer.boxBgColor = COLOR_TRANSPARENT_GREY;
+    printer.boxBgColor = PP_COLOR_TRANSPARENT_GREY;
     printer.boxPadding = 10;
 
     printer.lineHeight = punchMenu.lineHeight();
@@ -223,7 +224,9 @@ void updatePreFrame() {
         for (idx = 0; idx < fighterCount; idx++) {
             processOverlays(allPlayerData[idx]);
         }
-    } else {
+
+        g_watermark.process();
+    } else { // end if we're a relevant scene.
         if (initialized) {
             initialized = false;
             punchMenu.cleanup();
