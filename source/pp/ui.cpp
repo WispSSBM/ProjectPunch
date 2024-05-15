@@ -1,14 +1,23 @@
+#include "pp/ui.h"
+
 #include <ft/ft_manager.h>
 #include <gf/gf_draw.h>
 #include <GX/GXPixel.h>
 
-#include "pp/input/pad.h"
-#include "pp/ui.h"
-#include "pp/common.h"
 #include "pp/collections/linkedlist.h"
-#include "pp/popup.h"
-#include "pp/menu.h"
+#include "pp/common.h"
+#include "pp/input/pad.h"
+#include "pp/menu/menu.h"
+#include "pp/menu/options/bool_option.h"
+#include "pp/menu/options/int_option.h"
+#include "pp/menu/options/float_option.h"
+#include "pp/menu/options/label_option.h"
+#include "pp/menu/options/spacer_option.h"
+#include "pp/menu/options/subpage_option.h"
+#include "pp/menu/options/playerdata_observer.h"
+
 #include "pp/playerdata.h"
+#include "pp/popup.h"
 
 namespace PP {
 
@@ -67,9 +76,9 @@ void PpunchMenu::init() {
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Subaction ID", &player, &PlayerData::subaction));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Subaction Name", &player, &PlayerData::subactionStr));
         playerInfoSubpage.addOption(new PlayerDataFlagObserver("RA Bits", &player, &PlayerData::raLowBits));
-        */
 
         addPage(&newPage);
+        */
     }
 
     #ifdef PP_MENU_DISPLAY_DEBUG

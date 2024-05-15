@@ -33,7 +33,10 @@ endif
 TARGET		:=	ProjectPunch
 RELID		:= 	235
 BUILD		:=	build
-SOURCES		:=	source $(wildcard source/*) $(wildcard source/pp/*) $(wildcard source/pp/collections/*) $(wildcard source/pp/graphics/*) lib/BrawlHeaders/PowerPC_EABI_Support/Runtime/Src/ # have to hardcode lib dir here???????
+SOURCES		:=	source $(wildcard source/*) $(wildcard source/pp/*) 
+SOURCES		+=  $(wildcard source/pp/collections/*) $(wildcard source/pp/graphics/*) 
+SOURCES		+=  $(wildcard source/pp/menu) $(wildcard source/pp/menu/options)
+SOURCES		+=  lib/BrawlHeaders/PowerPC_EABI_Support/Runtime/Src/ # have to hardcode lib dir here???????
 INCLUDES	:=	include
 
 #---------------------------------------------------------------------------------
@@ -141,11 +144,11 @@ $(OFILES_SOURCES) : $(HFILES)
 # REL linking
 %.rel: %.elf
 	@echo output ... $(notdir $@)
-	$(SILENTCMD)$(ELF2REL) $< -s $(MAPFILE) --rel-id $(RELID)
+	$(ELF2REL) $< -s $(MAPFILE) --rel-id $(RELID)
 	
 %.elf:
 	@echo linking ... $(notdir $@)
-	$(SILENTCMD)$(LD) $^ $(LDFLAGS) -Map $(OUTPUT).map -o $@
+	$(LD) $^ $(LDFLAGS) -Map $(OUTPUT).map -o $@
 	
 
 #---------------------------------------------------------------------------------
@@ -153,13 +156,13 @@ $(OFILES_SOURCES) : $(HFILES)
 #---------------------------------------------------------------------------------
 %.o: %.cpp
 #	$(info $<)
-	$(SILENTMSG) $(notdir $<)
+	$(SILENTMSG) $(realpath $<)
 	$(SILENTCMD)$(CXX) $(CXXFLAGS) -MMD $< $(INCLUDE) -o $(DEPSDIR)/$*.d
 	$(SILENTCMD)$(CXX) $(CXXFLAGS) -c $< $(INCLUDE) -o $@
 
 %.o: %.c
 #	$(info $<)
-	$(SILENTMSG) $(notdir $<)
+	$(SILENTMSG) $(realpath $<)
 	$(SILENTCMD)$(CC) $(CCFLAGS) -MMD $< $(INCLUDE) -o $(DEPSDIR)/$*.d
 	$(SILENTCMD)$(CC) $(CCFLAGS) -c $< $(INCLUDE) -o $@
 

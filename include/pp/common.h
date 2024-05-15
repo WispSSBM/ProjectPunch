@@ -144,6 +144,8 @@ namespace PP {
     #define PP_DEBUG_LEDGETECH
     #endif
 
+    // #define PP_MENU_DISPLAY_DEBUG
+
     /* Conditional print functions */
     #ifdef PP_DEBUG_CTOR
     #define DEBUG_CTOR(...) (OSReport(__VA_ARGS__))

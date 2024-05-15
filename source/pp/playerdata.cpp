@@ -33,9 +33,6 @@ bool startsWith(const char* testStr, const char* prefix) {
 }
 
 PlayerData::PlayerData() {
-    maxHitstun = 0;
-    maxShieldstun = 0;
-    attackTarget = NULL;
     becameActionableOnFrame = -1;
     lastAttackEndedOnFrame = -1; // currently unused.
     prev = new PlayerDataOnFrame();
@@ -44,31 +41,7 @@ PlayerData::PlayerData() {
     charId = Fighter_Mario;
     taskId = -1;
     entryId = -1;
-    fighterName = NULL;
 
-    didStartAttack = false;
-    didConnectAttack = false;
-    isAttackingShield = false;
-    isAttackingFighter = false;
-
-    didActionChange = false;
-    occupiedActionableStateThisFrame = false;
-
-    showOnHitAdvantage = false;
-    showOnShieldAdvantage = false;
-    showFighterState = false;
-    showActOutOfLag = false;
-
-    enableActionableOverlay = false;
-    enableDashOverlay = false;
-    enableIasaOverlay = false;
-
-    enableLedgeTechWatcher = true;
-
-    animCmdWatcher = NULL;
-    statusChangeWatcher = NULL;
-    ledgeTechWatcher = NULL;
-    
     DEBUG_CTOR("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
 };
 

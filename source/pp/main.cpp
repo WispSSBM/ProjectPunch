@@ -326,15 +326,6 @@ void gatherData(u8 playerEntryIdx) {
 
         OSReport("Initializing P%d: %s\n", playerNumber, playerData.fighterName);
 
-        DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
-        if (opType != 0) {
-            allPlayerData[playerNumber].showOnShieldAdvantage = false;
-            allPlayerData[playerNumber].showOnHitAdvantage = false;
-        } else {
-            allPlayerData[playerNumber].showOnShieldAdvantage = true;
-            allPlayerData[playerNumber].showOnHitAdvantage = false;
-        };
-
         AnimCmdWatcher* animCmdEventHandler = new AnimCmdWatcher(&allPlayerData[playerNumber], fighter);
         animCmdEventHandler->registerWith(fighter);
         allPlayerData[playerNumber].animCmdWatcher = animCmdEventHandler;
@@ -342,7 +333,16 @@ void gatherData(u8 playerEntryIdx) {
         statusChangeWatcher->registerWith(fighter);
         allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
 
-        playerData.initLedgeTechWatcher(*fighter);
+        DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
+        if (opType == 0) { // Player is a human
+            allPlayerData[playerNumber].showOnShieldAdvantage = true;
+            allPlayerData[playerNumber].showOnHitAdvantage = false;
+
+            if (getScene() == TRAINING_MODE_MMS) {
+                playerData.initLedgeTechWatcher(*fighter);
+                allPlayerData[playerNumber].enableLedgeTechWatcher = true;
+            }
+        };
     }
 
     playerData.prepareNextFrame();
