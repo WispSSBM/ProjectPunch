@@ -37,6 +37,31 @@ PlayerData::PlayerData() {
     lastAttackEndedOnFrame = -1; // currently unused.
     prev = new PlayerDataOnFrame();
     current = new PlayerDataOnFrame();
+    fighterName = NULL;
+    attackTarget = NULL;
+
+    didStartAttack = false;
+    didConnectAttack = false;
+    isAttackingShield = false;
+    isAttackingFighter = false;
+
+    didActionChange = false;
+    occupiedActionableStateThisFrame = false;
+    occupiedWaitingStateThisFrame = false;
+
+    showOnHitAdvantage = false;
+    showOnShieldAdvantage = false;
+    showFighterState = false;
+    showActOutOfLag = false;
+
+    enableWaitOverlay = false;
+    enableDashOverlay = false;
+    enableIasaOverlay = false;
+    enableLedgeTechWatcher = false;
+
+    animCmdWatcher = NULL;
+    statusChangeWatcher = NULL;
+    ledgeTechWatcher = NULL;
 
     charId = Fighter_Mario;
     taskId = -1;
@@ -355,6 +380,7 @@ void PlayerData::prepareNextFrame() {
     current->isAirborne = prev->isAirborne;
     didActionChange = false;
     occupiedActionableStateThisFrame = isDefinitelyActionable(current->action);
+    occupiedWaitingStateThisFrame = (current->action == ACTION_WAIT);
 
     _computedGroundedActionable = false;
 }
@@ -367,6 +393,9 @@ void PlayerData::setAction(u16 newAction) {
     didActionChange = true;
     if (isDefinitelyActionable(newAction)) {
         occupiedActionableStateThisFrame = true;
+    }
+    if (newAction == ACTION_WAIT) {
+        occupiedWaitingStateThisFrame = true;
     }
     memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
 }

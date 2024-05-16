@@ -45,7 +45,12 @@ Coord2D::Coord2D(const Coord2DF& other) {
 
 //hacky way to check if in game
 SCENE_TYPE getScene() {
-    gfSequence* seq = gfSceneManager::getInstance()->m_currentSequence;
+    gfSceneManager* instance = gfSceneManager::getInstance();
+    if (instance == NULL) { return UNKNOWN; }
+
+    gfSequence* seq = instance->m_currentSequence;
+    if (seq == NULL) { return UNKNOWN; }
+
     int mysteriousInt = *(((int*)seq) + 2);
     return (SCENE_TYPE)mysteriousInt;
 }

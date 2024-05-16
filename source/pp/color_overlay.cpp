@@ -14,8 +14,8 @@ void processOverlays(const PlayerData& player) {
         return;
     }
 
-    if (player.enableActionableOverlay) {
-        overlaySetThisFrame |= processActionableOverlay(player, *cbm);
+    if (player.enableWaitOverlay) {
+        overlaySetThisFrame |= processWaitOverlay(player, *cbm);
     }
 
     if (player.enableDashOverlay) {
@@ -31,8 +31,12 @@ void processOverlays(const PlayerData& player) {
     }
 }
 
-bool processActionableOverlay(const PlayerData& player, soColorBlendModule& cbm) {
-    if(player.occupiedActionableStateThisFrame || player.inIasa() || player.canCancel()) {
+bool processWaitOverlay(const PlayerData& player, soColorBlendModule& cbm) {
+    if(player.occupiedWaitingStateThisFrame
+      || (
+        player.inGroundedIasa() && isLandingAction(player.current->action)
+      )
+    ) {
         cbm.setSubColor(COLOR_OVERLAY_WAIT.gxColor, 1);
         return true;
     }

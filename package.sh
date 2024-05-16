@@ -23,7 +23,7 @@ cp ../tools/sy_core.rel ./pf/module
 cp ../tools/syriinge.asm ./Source
 cp ../tools/pre_syriinge.asm ./Source
 
-zip -r "project-punch-${VER}.zip" ./*
+zip -r "ProjectPunch-${VER}.zip" ./*
 mv ./*.zip ../
 cd ../
 rm -r tmp

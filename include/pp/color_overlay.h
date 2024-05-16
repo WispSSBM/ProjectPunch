@@ -12,7 +12,7 @@ namespace PP {
 #define COLOR_OVERLAY_NONE ((Color)0x00000000)
 
 void processOverlays(const PlayerData& player);
-bool processActionableOverlay(const PlayerData& player, soColorBlendModule& cbm);
+bool processWaitOverlay(const PlayerData& player, soColorBlendModule& cbm);
 bool processDashOverlay(const PlayerData& player, soColorBlendModule& cbm);
 bool processIasaOverlay(const PlayerData& player, soColorBlendModule& cbm);
 

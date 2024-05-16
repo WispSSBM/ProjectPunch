@@ -33,7 +33,7 @@ enum FrameType {
 
 class LedgeTechFrameDrawable: public Graphics::Drawable {
 public:
-    LedgeTechFrameDrawable(GXColor color, int delay, int lifetime, float top, float bottom, float left, float right) {
+    LedgeTechFrameDrawable(GXColor color, int delay, int lifetime, float top, float bottom, float left, float right): Graphics::Drawable() {
         this->color = color;
         this->delay = delay;
         this->lifeTime = lifetime;

@@ -62,9 +62,9 @@ void PpunchMenu::init() {
         newPage.addOption(new BoolOption("Popup: On-Hit Advantage", player.showOnHitAdvantage));
         newPage.addOption(new BoolOption("Popup: Ledge Options", player.enableLedgeTechWatcher));
         newPage.addOption(new BoolOption("Show Fighter State", player.showFighterState));
-        newPage.addOption(new BoolOption("Overlay: Actionable", player.enableActionableOverlay));
-        newPage.addOption(new BoolOption("Overlay: Dash/Run", player.enableDashOverlay));
-        newPage.addOption(new BoolOption("Overlay: IASA", player.enableIasaOverlay));
+        newPage.addOption(new BoolOption("Wait Overlay", player.enableWaitOverlay));
+        newPage.addOption(new BoolOption("Dash Overlay", player.enableDashOverlay));
+        newPage.addOption(new BoolOption("IASA Overlay", player.enableIasaOverlay));
         newPage.addOption(new SpacerOption());
 
         /*
@@ -76,9 +76,9 @@ void PpunchMenu::init() {
         playerInfoSubpage.addOption(new PlayerDataShortHexObserver("Subaction ID", &player, &PlayerData::subaction));
         playerInfoSubpage.addOption(new PlayerDataStrObserver("Subaction Name", &player, &PlayerData::subactionStr));
         playerInfoSubpage.addOption(new PlayerDataFlagObserver("RA Bits", &player, &PlayerData::raLowBits));
+        */
 
         addPage(&newPage);
-        */
     }
 
     #ifdef PP_MENU_DISPLAY_DEBUG

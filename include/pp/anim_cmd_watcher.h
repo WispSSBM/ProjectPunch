@@ -14,6 +14,7 @@ public:
         m_playerData = pdata;
         m_fighter = fighter;
         this->m_unitID = 558 + pdata->playerNumber;
+        this->m_eventUnit = NULL;
     };
 
     virtual ~AnimCmdWatcher() { }

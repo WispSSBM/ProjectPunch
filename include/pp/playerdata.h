@@ -125,6 +125,7 @@ struct PlayerData {
     // in setAction(), we check the new action and set this flag if the new action is actionable.
     // This flag is also set at the beginning of the new frame based on the current action.
     u32 occupiedActionableStateThisFrame: 1;
+    u32 occupiedWaitingStateThisFrame: 1;
 
     /* display flags */
     // These aren't bitfields because you can't take a pointer to a bitfield, and that
@@ -133,7 +134,7 @@ struct PlayerData {
     bool showOnShieldAdvantage;    // 0x35
     bool showActOutOfLag;          // 0x36
     bool showFighterState;         // 0x47
-    bool enableActionableOverlay;  // 0x48
+    bool enableWaitOverlay;        // 0x48
     bool enableDashOverlay;        // 0x49
     bool enableIasaOverlay;        // 0x4A
     bool enableLedgeTechWatcher;   // 0x4B

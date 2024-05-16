@@ -288,6 +288,10 @@ const char* actionName(u16 action) {
     }
 }
 
+bool isLandingAction(u16 action) {
+    return (action >= 0x16 && action <= 0x19);
+}
+
 bool isEATBitExclusion(ftKind charKind, int actionId) {
     if (actionId == ACTION_JAB) {
         switch (charKind) {

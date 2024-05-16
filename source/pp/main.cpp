@@ -339,7 +339,6 @@ void gatherData(u8 playerEntryIdx) {
             allPlayerData[playerNumber].showOnHitAdvantage = false;
 
             if (getScene() == TRAINING_MODE_MMS) {
-                playerData.initLedgeTechWatcher(*fighter);
                 allPlayerData[playerNumber].enableLedgeTechWatcher = true;
             }
         };
@@ -458,6 +457,9 @@ void gatherData(u8 playerEntryIdx) {
     #pragma endregion
 
     if (playerData.enableLedgeTechWatcher) {
+        if (playerData.ledgeTechWatcher == NULL) {
+            playerData.initLedgeTechWatcher(*fighter);
+        }
         playerData.ledgeTechWatcher->process(*fighter);
     }
 }
