@@ -60,7 +60,9 @@ void PpunchMenu::init() {
         snprintf(newPage.title, 256, "P%d = %s", i+1, player.fighterName);
         newPage.addOption(new BoolOption("Popup: On-Shield Advantage", player.showOnShieldAdvantage));
         newPage.addOption(new BoolOption("Popup: On-Hit Advantage", player.showOnHitAdvantage));
-        newPage.addOption(new BoolOption("Popup: Ledge Options", player.enableLedgeTechWatcher));
+        newPage.addOption(new BoolOption("Popup: Ledge Frame Display", player.enableLedgeTechFrameDisplay));
+        newPage.addOption(new BoolOption("Popup: Ledge GALINT", player.enableLedgeTechGalintPopup));
+        newPage.addOption(new BoolOption("Popup: Ledge Exit Frame", player.enableLedgeTechFramesOnLedgePopup));
         newPage.addOption(new BoolOption("Show Fighter State", player.showFighterState));
         newPage.addOption(new BoolOption("Wait Overlay", player.enableWaitOverlay));
         newPage.addOption(new BoolOption("Dash Overlay", player.enableDashOverlay));

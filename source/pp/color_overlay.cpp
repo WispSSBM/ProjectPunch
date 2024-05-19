@@ -32,7 +32,7 @@ void processOverlays(const PlayerData& player) {
 }
 
 bool processWaitOverlay(const PlayerData& player, soColorBlendModule& cbm) {
-    if(player.occupiedWaitingStateThisFrame
+    if(player.current->occupiedWaitingStateThisFrame
       || (
         player.inGroundedIasa() && isLandingAction(player.current->action)
       )

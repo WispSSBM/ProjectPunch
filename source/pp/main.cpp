@@ -1,4 +1,5 @@
 #include <cstring>
+#include <limits.h>
 #include <so/work/so_general_work_abstract.h>
 #include <so/work/so_work_manage_module_impl.h>
 #include <ft/fighter.h>
@@ -125,6 +126,8 @@ bool needsInitializing() {
 // main entry point.
 void updatePreFrame() {
     renderables.renderPre();
+    LedgeTechDisplayDrawable::drawInstance();
+
     frameCounter += 1;
     #ifdef PP_DEBUG_MEM
     if (frameCounter % 300 == 0) {
@@ -177,7 +180,7 @@ void updatePreFrame() {
         for(idx = 0; idx < fighterCount; idx++) {
             PlayerData& playerData = allPlayerData[idx];
 
-            if (playerData.didActionChange && playerData.occupiedActionableStateThisFrame) {
+            if (playerData.didActionChange && playerData.current->occupiedActionableStateThisFrame) {
                 playerData.didStartAttack = true;
             }
 
@@ -226,6 +229,10 @@ void updatePreFrame() {
         }
 
         g_watermark.process();
+
+        for (idx = 0; idx < fighterCount; idx++) {
+            allPlayerData[idx].prepareNextFrame();
+        }
     } else { // end if we're a relevant scene.
         if (initialized) {
             initialized = false;
@@ -339,12 +346,13 @@ void gatherData(u8 playerEntryIdx) {
             allPlayerData[playerNumber].showOnHitAdvantage = false;
 
             if (getScene() == TRAINING_MODE_MMS) {
-                allPlayerData[playerNumber].enableLedgeTechWatcher = true;
+                allPlayerData[playerNumber].enableLedgeTechFramesOnLedgePopup = true;
+                allPlayerData[playerNumber].enableLedgeTechFrameDisplay = true;
             }
         };
+        playerData.prepareNextFrame();
     }
 
-    playerData.prepareNextFrame();
     PlayerDataOnFrame& currentData = *playerData.current;
     PlayerDataOnFrame& prevData = *playerData.current;
     playerData.entryId = entryId;
@@ -355,6 +363,7 @@ void gatherData(u8 playerEntryIdx) {
     soStatusModule* statusModule = modules.getStatusModule();
     soMotionModuleImpl* motionModule = dynamic_cast<soMotionModuleImpl*>(modules.getMotionModule());
     ftCancelModule* cancelModule = reinterpret_cast<ftCancelModule*>(fighter->getCancelModule());
+    soCollisionHitModuleImpl* collisionHitModule = dynamic_cast<soCollisionHitModuleImpl*>(modules.getCollisionHitModule());
 
     DEBUG_FIGHTERS(
         "Player: %d\n"
@@ -456,7 +465,19 @@ void gatherData(u8 playerEntryIdx) {
     }
     #pragma endregion
 
-    if (playerData.enableLedgeTechWatcher) {
+    if (collisionHitModule != NULL) {
+        if (collisionHitModule->m_collisionHitGroupArray != NULL && collisionHitModule->m_collisionHitGroupArray->size() > 0) {
+            soCollisionHitGroup* hitGroup = collisionHitModule->m_collisionHitGroupArray->at(0);
+
+            playerData.current->bodyHurtboxType = (HurtboxStatus)hitGroup->m_whole;
+            playerData.current->ledgeIntan = hitGroup->m_xluFrameGlobal;
+            if (playerData.current->ledgeIntan == 0 && playerData.prev->ledgeIntan > INT_MIN) {
+                playerData.current->ledgeIntan = playerData.prev->ledgeIntan - 1;
+            }
+        }
+    }
+
+    if (playerData.enableLedgeTechFrameDisplay || playerData.enableLedgeTechFramesOnLedgePopup || playerData.enableLedgeTechGalintPopup) {
         if (playerData.ledgeTechWatcher == NULL) {
             playerData.initLedgeTechWatcher(*fighter);
         }
@@ -477,7 +498,7 @@ void resolveAttackTarget(u8 playerIdx) {
             }
 
             PlayerData& otherPlayer = allPlayerData[otherIdx];
-            if (player.showOnHitAdvantage && otherPlayer.didReceiveHitstun()) {
+            if (otherPlayer.didReceiveHitstun()) {
                 player.resetTargeting();
                 otherPlayer.resetTargeting();
 
@@ -485,7 +506,7 @@ void resolveAttackTarget(u8 playerIdx) {
                 player.attackTarget = &(otherPlayer);
                 player.isAttackingFighter = true;
                 break;
-            } else if (player.showOnShieldAdvantage && otherPlayer.didReceiveShieldstun()) {
+            } else if (otherPlayer.didReceiveShieldstun()) {
                 player.resetTargeting();
                 otherPlayer.resetTargeting();
 
@@ -517,11 +538,10 @@ void checkAttackTargetActionable(u8 playerNum) {
             /* Lots of weird edge cases where the ending doesn't register, such as dying or teching. */
             /* > 30 frames is generally judge-able with a human eye anyway. */
             if (advantage > -50 && advantage < 50) {
-                if (player.showOnShieldAdvantage) {
-                    Popup& popup = *player.createPopup();
-                    popup.printf("Advantage: %d\n", advantage);
-                    popup.coords = getHpPopupBoxCoords(player.playerNumber);
-                    popup.durationSecs = 3;
+                if (player.isAttackingFighter && player.showOnHitAdvantage) {
+                    player.createPopup("On-Hit: %d\n", advantage);
+                } else if (player.isAttackingShield && player.showOnShieldAdvantage) {
+                    player.createPopup("On-Shield: %d\n", advantage);
                 }
             }
 

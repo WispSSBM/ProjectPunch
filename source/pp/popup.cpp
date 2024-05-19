@@ -90,17 +90,23 @@ void Popup::draw(TextPrinter& printer) {
     }
 }
 
-void Popup::printf(const char* fmt, ...)
+void Popup::vprintf(const char* fmt, va_list args) 
 {
-    va_list args;
-    va_start(args, fmt);
-
     int textLen = vsnprintf(this->text, 256, fmt, args);
     DEBUG_POPUPS("Showing popup [\n  %s] on frame %d\n", this->text, startFrame);
 
     if (textLen >= 256 || textLen < 0) {
         this->text[255] = '\0';
     }
+}
+
+void Popup::printf(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    this->vprintf(fmt, args);
+
     va_end(args);
 }
 

@@ -49,21 +49,40 @@ public:
     float top, bottom, left, right;
 };
 
-class LedgeTechLegendDrawable: public Graphics::Drawable {
+class LedgeTechDisplayDrawable: public Graphics::Drawable {
 public:
-    LedgeTechLegendDrawable(int delay, int lifetime, float top, float left, u8 opacity): Graphics::Drawable() {
+    LedgeTechDisplayDrawable(int totalFrames, int delay, int lifetime, float top, float left, u8 opacity): Graphics::Drawable() {
         this->delay = delay;
         this->lifeTime = lifetime;
         this->top = top;
         this->left = left;
         this->is2D = true;
         this->opacity = opacity;
+        this->frames = new Collections::vector(totalFrames);
+        this->framesTotalWidth = totalFrames * LEDGEDASH_BOX_WIDTH;
+        this->framesStartPosX = PP_CENTER_SCREEN_X - (framesTotalWidth / 2.0f);
     }
 
-    void draw();
+    ~LedgeTechDisplayDrawable() {
+        for (int i = 0; i < this->frames->size(); i++) {
+            delete reinterpret_cast<LedgeTechFrameDrawable*>((*frames)[i]);
+        }
 
-    float top, left;
+        delete this->frames;
+    }
+
+    static void setInstance(LedgeTechDisplayDrawable* newInstance);
+    static void drawInstance();
+    void draw();
+    void addFrame(FrameType frameType);
+
+    Collections::vector* frames;
+    float top, left, framesStartPosX;
+    int framesTotalWidth;
     u8 opacity;
+
+private:
+    static LedgeTechDisplayDrawable* instance;
 };
 
 class LedgeTechWatcher: public StatusChangeWatcher {
@@ -75,15 +94,15 @@ class LedgeTechWatcher: public StatusChangeWatcher {
             opacity = 0xBB;
         };
 
-        void didCatchCliff(int fighterFrame);
-        void didCatchCliffEnd(int fighterFrame);
-        void didLeaveCliff(int fighterFrame);
-        void didFinishLedgeDash(int fighterFrame);
-        void didStartCliffJump(int fighterFrame);
-        void didStartCliffRoll(int fighterFrame);
-        void didStartCliffAttack(int fighterFrame);
-        void didStartCliffClimb(int fighterFrame);
-        void didStartFall(int fighterFrame);
+        void didCatchCliff(int fighterFrame, soModuleAccesser& modules);
+        void didCatchCliffEnd(int fighterFrame, soModuleAccesser& modules);
+        void didLeaveCliff(int fighterFrame, soModuleAccesser& modules, int newStatusKind);
+        void didFinishLedgeDash(int fighterFrame, soModuleAccesser& modules);
+        void didStartCliffJump(int fighterFrame, soModuleAccesser& modules);
+        void didStartCliffRoll(int fighterFrame, soModuleAccesser& modules);
+        void didStartCliffAttack(int fighterFrame, soModuleAccesser& modules);
+        void didStartCliffClimb(int fighterFrame, soModuleAccesser& modules);
+        void didStartFall(int fighterFrame, soModuleAccesser& modules);
 
         bool shouldStopWatching();
         void resetState();
@@ -95,7 +114,12 @@ class LedgeTechWatcher: public StatusChangeWatcher {
 
         virtual void notifyEventChangeStatus(int statusKind, int prevStatusKind, soStatusData* statusData, soModuleAccesser* moduleAccesser);
         virtual void process(Fighter& fighter);
-        virtual bool isEnabled() { return playerData->enableLedgeTechWatcher; };
+        virtual bool isEnabled() { 
+            return (playerData != NULL
+                && (playerData->enableLedgeTechFrameDisplay 
+                    || playerData->enableLedgeTechGalintPopup 
+                    || playerData->enableLedgeTechFramesOnLedgePopup));
+        };
 
         u8 opacity;
     private:
@@ -104,14 +128,15 @@ class LedgeTechWatcher: public StatusChangeWatcher {
 
         int* _currentFrameCounter;
         FrameType _currentFrameType;
-        int _remainingLedgeIntan;
         int _visualDurationFrames;
 
         // frames on which things happened.
+        int _cliffCatchStartFrame;
         int _cliffWaitStartFrame;
         int _tourneyWinnerActionableFrame;
 
         // counters
+        int _framesRecorded;
         int _totalFrames;
         int _totalFramesPrev;
         int _cliffWaitFrames;

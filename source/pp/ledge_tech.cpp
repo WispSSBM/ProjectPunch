@@ -6,9 +6,11 @@
 #include "pp/graphics/drawable.h"
 #include "pp/graphics/text_printer.h"
 
+#include <gf/gf_scene.h>
 #include <it/it_manager.h>
 
-#define LA_INT_FRAME_COUNT 78
+
+PP::LedgeTechDisplayDrawable* PP::LedgeTechDisplayDrawable::instance = NULL;
 
 const char* g_frameTypeLabels[] = {
     "Ledge", 
@@ -16,49 +18,75 @@ const char* g_frameTypeLabels[] = {
     "Jumping",
     "T.Winner",
     "Airdodge",
-    "Attack",
     "Landing",
+    "Attack",
     "Galint",
     "Other"
 };
 
-void PP::LedgeTechWatcher::didCatchCliff(int fighterFrame) {
+/* 
+ * In all of these watchers, it's important to note that the current frame is
+ * the first frame of the new action. This means that if you want to calculate the
+ * duration of a previous state you are at current frame - 1.
+ * 
+ * Additionally, all of these handlers run at the *end* of the frame. 
+*/
+
+void PP::LedgeTechWatcher::didCatchCliff(int fighterFrame, soModuleAccesser& modules) {
     resetState();
     _isOnLedge = true;
+    _cliffCatchStartFrame = fighterFrame;
 }
 
-void PP::LedgeTechWatcher::didCatchCliffEnd(int fighterFrame)
+void PP::LedgeTechWatcher::didCatchCliffEnd(int fighterFrame, soModuleAccesser& modules)
 {
-    DEBUG_LEDGETECH("Left ledge on frame %d\n", fighterFrame - _cliffWaitStartFrame);
     _cliffWaitStartFrame = fighterFrame;
     _currentFrameCounter = &_cliffWaitFrames;
+    DEBUG_LEDGETECH("Finished cliffCatch on frame %d (%d)\n", fighterFrame, 0);
 }
 
-void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame)
+void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame, soModuleAccesser& modules, int newStatusKind)
 {
-    DEBUG_LEDGETECH("Left ledge on frame %d\n", fighterFrame - _cliffWaitStartFrame);
+    int elapsedFrames = fighterFrame - _cliffCatchStartFrame;
+    int ledgeFrames;
+    if (newStatusKind >= ACTION_CLIFFCATCHSTART && newStatusKind <= ACTION_CLIFFJUMPSTART) {
+        ledgeFrames = elapsedFrames - 6;
+    } else {
+        ledgeFrames = elapsedFrames - 8;
+    }
+
+    for (int i = 0; i < ledgeFrames-1; i++) {
+        this->_framesList[i] = LEDGE_FT_CLIFFWAIT;
+    }
+    _framesRecorded = ledgeFrames - 1;
+
+    if (playerData->enableLedgeTechFramesOnLedgePopup && _cliffWaitFrames != -1) {
+        playerData->createPopup("Ledge Frames: %d\n", ledgeFrames);
+    }
+
+    DEBUG_LEDGETECH("Left ledge on frame relative to CliffCatch %d (%d)\n", fighterFrame, elapsedFrames);
     _isOnLedge = false;
 }
 
-void PP::LedgeTechWatcher::didStartCliffJump(int fighterFrame) {
-    DEBUG_LEDGETECH("Started cliffjump on frame %d\n", fighterFrame - _cliffWaitStartFrame);
+void PP::LedgeTechWatcher::didStartCliffJump(int fighterFrame, soModuleAccesser& modules) {
+    DEBUG_LEDGETECH("Started cliffjump on frame %d (%d)\n", fighterFrame, fighterFrame - _cliffWaitStartFrame);
 }
 
-void PP::LedgeTechWatcher::didStartCliffRoll(int fighterFrame) {
-    DEBUG_LEDGETECH("Started cliffroll on rame %d\n", fighterFrame - _cliffWaitStartFrame);
+void PP::LedgeTechWatcher::didStartCliffRoll(int fighterFrame, soModuleAccesser& modules) {
+    DEBUG_LEDGETECH("Started cliffroll on frame %d (%d)\n", fighterFrame - _cliffWaitStartFrame);
 }
 
-void PP::LedgeTechWatcher::didStartCliffAttack(int fighterFrame) {
+void PP::LedgeTechWatcher::didStartCliffAttack(int fighterFrame, soModuleAccesser& modules) {
     DEBUG_LEDGETECH("Started cliffattack on frame %d\n", fighterFrame - _cliffWaitStartFrame);
 }
 
-void PP::LedgeTechWatcher::didStartCliffClimb(int fighterFrame) {
+void PP::LedgeTechWatcher::didStartCliffClimb(int fighterFrame, soModuleAccesser& modules) {
     DEBUG_LEDGETECH("Started neutral getup on frame %d\n", fighterFrame - _cliffWaitStartFrame);
 }
 
-void PP::LedgeTechWatcher::didStartFall(int fighterFrame) {}
+void PP::LedgeTechWatcher::didStartFall(int fighterFrame, soModuleAccesser& modules) {}
 
-void PP::LedgeTechWatcher::didFinishLedgeDash(int fighterFrame)
+void PP::LedgeTechWatcher::didFinishLedgeDash(int fighterFrame, soModuleAccesser& modules)
 {
     DEBUG_LEDGETECH(
         "Ledgedash detected on frame %d:\n"
@@ -70,15 +98,21 @@ void PP::LedgeTechWatcher::didFinishLedgeDash(int fighterFrame)
         "\tair dodging: %d\n"
         "\tlanding: %d\n"
         "\tother: %d\n",
-        fighterFrame, _remainingLedgeIntan,
+        fighterFrame, playerData->current->ledgeIntan,
         _cliffWaitFrames, _fallingFrames,
         _twStartupFrames,
         _jumpingFrames, _airDodgeFrames,
         _specialLandFrames, _otherFrames
     );
-    drawLedgeDash();
-    Popup& popup = *playerData->createPopup();
-    popup.printf("GALINT: %d\n", _remainingLedgeIntan);
+
+    if (playerData->enableLedgeTechFrameDisplay) {
+        drawLedgeDash();
+    }
+
+    if (playerData->enableLedgeTechGalintPopup) {
+        playerData->createPopup("GALINT: %d\n", playerData->current->ledgeIntan);
+    }
+
     _didShowLedgeDash = true;
 }
 
@@ -86,32 +120,27 @@ void PP::LedgeTechWatcher::notifyEventChangeStatus(int statusKind, int prevStatu
 {
     if (!isEnabled()) { return; }
 
-    int fighterFrame = itManager::getInstance()->m_framesIntoCurrentGame;
-
-
     if (statusKind == ACTION_CLIFFCATCHSTART) {
-        didCatchCliff(fighterFrame);
+        didCatchCliff(frameCounter, *moduleAccesser);
     }
     else if (statusKind == ACTION_CLIFFWAIT) {
-        didCatchCliffEnd(fighterFrame);
+        didCatchCliffEnd(frameCounter, *moduleAccesser);
     } 
     else if (prevStatusKind == ACTION_CLIFFWAIT) {
-        didLeaveCliff(fighterFrame);
+        didLeaveCliff(frameCounter, *moduleAccesser, statusKind);
 
         if (statusKind == ACTION_CLIFFESCAPE) {
-            didStartCliffRoll(fighterFrame);
+            didStartCliffRoll(frameCounter, *moduleAccesser);
         } else if  (statusKind == ACTION_CLIFFATTACK) {
-            didStartCliffAttack(fighterFrame);
+            didStartCliffAttack(frameCounter, *moduleAccesser);
         } else if (statusKind == ACTION_CLIFFCLIMB) {
-            didStartCliffClimb(fighterFrame);
+            didStartCliffClimb(frameCounter, *moduleAccesser);
         } else if (statusKind == ACTION_FALL) {
-            didStartFall(fighterFrame);
+            didStartFall(frameCounter, *moduleAccesser);
         }
     }
 
     updateCurrentFrameCounter(statusKind);
-    
-    
 }
 
 void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
@@ -120,51 +149,54 @@ void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
     case ACTION_ESCAPEAIR:
         _currentFrameCounter = &_airDodgeFrames; 
         _currentFrameType = LEDGE_FT_AIRDODGE;
-        break;
+        return;
     case ACTION_FALL: 
         _currentFrameCounter = &_fallingFrames;
         _currentFrameType = LEDGE_FT_FALLING;
-        break;
+        return;
     case ACTION_CLIFFWAIT:
         _currentFrameCounter = &_cliffWaitFrames;
         _currentFrameType = LEDGE_FT_CLIFFWAIT;
-        break;
+        return;
     case ACTION_CLIFFJUMPSTART: 
         _currentFrameCounter = &_twStartupFrames; 
         _currentFrameType = LEDGE_FT_TWSTARTUP;
-        break;
+        return;
     case ACTION_JUMPAERIAL:
     case ACTION_CLIFFJUMPEND: 
         _currentFrameCounter = &_jumpingFrames;
         _currentFrameType = LEDGE_FT_JUMPING;
-        break;
-    case ACTION_AERIALATTACK:
-        _currentFrameCounter = &_attackingFrames;
-        _currentFrameType = LEDGE_FT_ATTACK;
-        break;
+        return;
     case ACTION_LANDINGHEAVY:
     case ACTION_LANDINGLIGHT:
     case ACTION_LANDINGLAGAERIALATTACK:
     case ACTION_LANDINGFALLSPECIAL:
         _currentFrameCounter = &_specialLandFrames;
         _currentFrameType = LEDGE_FT_LANDING;
-        break;
-    default: 
+        return;
+    }
+
+    if (statusKind >= ACTION_JAB && statusKind <= ACTION_CATCH) {
+        _currentFrameCounter = &_attackingFrames;
+        _currentFrameType = LEDGE_FT_ATTACK;
+    } else {
         _currentFrameCounter = &_otherFrames;
         _currentFrameType = LEDGE_FT_OTHER;
     }
 }
 
 bool PP::LedgeTechWatcher::shouldStopWatching() {
-    return _totalFrames >= 64;
+    return _totalFrames >= 64 || playerData->current->action == ACTION_UNLOADED;
 }
 
 void PP::LedgeTechWatcher::resetState() {
+    DEBUG_LEDGETECH("LEDGETECH: done watching.\n");
     _totalFrames = -1;
     _totalFramesPrev = -1;
+    _cliffCatchStartFrame = -1;
     _cliffWaitStartFrame = -1;
-    _remainingLedgeIntan = -1;
     _isOnLedge = false;
+    _framesRecorded = 0;
 
     _cliffWaitFrames = 0;
     _fallingFrames = 0;
@@ -179,16 +211,19 @@ void PP::LedgeTechWatcher::resetState() {
     _didShowLedgeDash = false;
 }
 
-void PP::LedgeTechWatcher::drawFrame(float startAllPosX, int idx) const {
-    float startPosX =  startAllPosX + (idx*LEDGEDASH_BOX_WIDTH);
+void PP::LedgeTechDisplayDrawable::addFrame(FrameType frameType) {
+    Color color = LedgeTechWatcher::getFrameColor(frameType);
+    int idx = this->frames->size();
+    float startPosX = this->framesStartPosX + (idx*LEDGEDASH_BOX_WIDTH);
     float endPosX = startPosX + LEDGEDASH_BOX_WIDTH;
-    Color color = getFrameColor(_framesList[idx]);
 
-    Graphics::renderables.items.preFrame.push(new LedgeTechFrameDrawable(
-        color.gxColor, 0, _visualDurationFrames,
+    LedgeTechFrameDrawable* ltfd = new LedgeTechFrameDrawable(
+        color.gxColor, 0, 9999,
         LEDGEDASH_START_Y, LEDGEDASH_START_Y + LEDGEDASH_BOX_HEIGHT,
         startPosX, endPosX
-    ));
+    );
+
+    this->frames->push(ltfd);
 }
 
 PP::Color PP::LedgeTechWatcher::getFrameColor(FrameType frameType) {
@@ -209,22 +244,40 @@ PP::Color PP::LedgeTechWatcher::getFrameColor(FrameType frameType) {
 void PP::LedgeTechWatcher::drawLedgeDash() {
     int frameIdx, i, j, centerScreenX, totalWidth;
 
-    totalWidth = _totalFrames * LEDGEDASH_BOX_WIDTH;
+    totalWidth = _framesRecorded * LEDGEDASH_BOX_WIDTH;
     float startPosX = PP_CENTER_SCREEN_X - (totalWidth / 2.0f);
 
-    for (i = 0; i < _totalFrames; i++) {
-        drawFrame(startPosX, i);
-    }
-
-    for (int j = 0; j < _remainingLedgeIntan; j++) {
-        _framesList[i+j] = LEDGE_FT_GALINT;
-        drawFrame(startPosX, i+j);
-    }
-
-    Graphics::renderables.items.preFrame.push(new LedgeTechLegendDrawable(
+    LedgeTechDisplayDrawable* ltd = new LedgeTechDisplayDrawable(
+        _framesRecorded + max(0, playerData->current->ledgeIntan),
         0, _visualDurationFrames, LEDGEDASH_START_Y - 50, LEDGEDASH_LEGEND_START_X, opacity
-    ));
+    );
+
+    for (i = 0; i < _framesRecorded; i++) {
+        ltd->addFrame(this->_framesList[i]);
+    }
+
+    for (int j = 0; j < playerData->current->ledgeIntan; j++) {
+        ltd->addFrame(LEDGE_FT_GALINT);
+    }
+
+    LedgeTechDisplayDrawable::setInstance(ltd);
 }
+
+namespace PP {
+    bool detectLedgeDash(PlayerData& playerData) {
+        DEBUG_LEDGETECH("Airborne: %d GroundedIASA: %d ActionableState: %d\n",
+            playerData.current->isAirborne,
+            playerData.current->occupiedGroundedIasaThisFrame,
+            playerData.current->occupiedActionableStateThisFrame
+        );
+
+        return (
+            !(playerData.current->isAirborne) 
+            && (
+                playerData.current->occupiedGroundedIasaThisFrame 
+                || playerData.current->occupiedActionableStateThisFrame));
+    }
+};
 
 void PP::LedgeTechWatcher::process(Fighter& fighter)
 {
@@ -234,57 +287,38 @@ void PP::LedgeTechWatcher::process(Fighter& fighter)
         /* Still in cliffcatch */
     }
 
-    if ( _cliffWaitStartFrame != -1 ) {
-        int fighterFrame = itManager::getInstance()->m_framesIntoCurrentGame;
+    if ( _cliffWaitStartFrame != -1 && !_isOnLedge) {
+        int fighterFrame = frameCounter;
+        DEBUG_LEDGETECH("frameCounter: %d action: 0x%X XLU: %d \n", frameCounter, playerData->current->action, playerData->current->ledgeIntan);
 
         _totalFrames = (fighterFrame - _cliffWaitStartFrame) + 1;
         if (_totalFramesPrev == -1) {
             _totalFramesPrev = _totalFrames - 1;
         }
         DEBUG_LEDGETECH("Ledge tech frame info: fighterFrame: %d totalFrames: %d totalFramesPrev: %d\n", fighterFrame, _totalFrames, _totalFramesPrev);
+        if (shouldStopWatching()) {
+            resetState();
+            return;
+        }
 
+        if (!_didShowLedgeDash && detectLedgeDash(*playerData)) {
+            didFinishLedgeDash(fighterFrame, *fighter.m_moduleAccesser);
+            resetState();
+            return;
+        }
+
+        int frameCounter;
         int frameDiff = _totalFrames - _totalFramesPrev;;
         _totalFramesPrev = _totalFrames;
 
         if (frameDiff == 1) {
             *_currentFrameCounter += 1;
 
-            DEBUG_LEDGETECH("LEDGETECH: setting frame %d = type %d\n", _totalFrames-1, _currentFrameType);
-            _framesList[_totalFrames-1] = _currentFrameType;
+            DEBUG_LEDGETECH("LEDGETECH: setting frame %d = type %d\n", _framesRecorded, _currentFrameType);
+            _framesList[_framesRecorded++] = _currentFrameType;
         } else if (frameDiff != 0) { 
             OSReport("WARNING: LEDGE TECH WATCHER INCREMENTED BY %d frames\n", _totalFrames - _totalFramesPrev);
         }
-
-        _remainingLedgeIntan = 29 - _totalFrames;
-
-        if (shouldStopWatching()) {
-            resetState();
-            return;
-        }
-
-        if (!_didShowLedgeDash && playerData->isGroundedActionable()) {
-            didFinishLedgeDash(fighterFrame);
-            resetState();
-            return;
-        }
-
-        if (_remainingLedgeIntan >= 0) {
-            /*
-            float timeRemainingPct = (float)(_remainingLedgeIntan) / 29.0f;
-            OSReport("Ledge intan: %d\n", _remainingLedgeIntan);
-            // debugWorkModule(fighter);
-
-            Color rectColor = 0x00FF00FF;
-            rectColor.r = (1 - timeRemainingPct) * 255;
-            Graphics::renderables.items.preFrame.push(new Graphics::Rect(
-                0, 1, rectColor.gxColor,
-                50, 80,
-                50, 50 + (100 * timeRemainingPct),
-                true
-            ));
-            */
-        }
-
     }
 }
 
@@ -293,7 +327,25 @@ void PP::LedgeTechFrameDrawable::draw() {
     Graphics::draw2DRectOutline(Color(0x000000FF).gxColor, top, bottom, left-1, right, 6);
 }
 
-void PP::LedgeTechLegendDrawable::draw() {
+/* static */ void PP::LedgeTechDisplayDrawable::setInstance(LedgeTechDisplayDrawable* newInstance) {
+    if (instance != NULL) {
+        delete instance;
+    }
+
+    instance = newInstance;
+}
+
+/* static */ void PP::LedgeTechDisplayDrawable::drawInstance() {
+    if (instance != NULL) {
+        Graphics::drawItem(instance);
+
+        if (instance->lifeTime <= 0) {
+            setInstance(NULL);
+        }
+    }
+}
+
+void PP::LedgeTechDisplayDrawable::draw() {
     Coord2DF pos = Coord2DF(left, top);
 
     for (int i = 0; i < sizeof(g_frameTypeLabels)/4; i++) {
@@ -308,6 +360,12 @@ void PP::LedgeTechLegendDrawable::draw() {
         ).draw();
 
         pos.x += LEDGEDASH_LEGEND_ITEM_PADDING;
+    }
+
+    /* Frames */
+    for (int i = 0; i < this->frames->size(); i++) {
+        LedgeTechFrameDrawable* frame = reinterpret_cast<LedgeTechFrameDrawable*>((*this->frames)[i]);
+        frame->draw();
     }
 
     pos = Coord2DF(left, top);

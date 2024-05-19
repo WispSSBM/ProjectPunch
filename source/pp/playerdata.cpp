@@ -46,8 +46,6 @@ PlayerData::PlayerData() {
     isAttackingFighter = false;
 
     didActionChange = false;
-    occupiedActionableStateThisFrame = false;
-    occupiedWaitingStateThisFrame = false;
 
     showOnHitAdvantage = false;
     showOnShieldAdvantage = false;
@@ -57,7 +55,9 @@ PlayerData::PlayerData() {
     enableWaitOverlay = false;
     enableDashOverlay = false;
     enableIasaOverlay = false;
-    enableLedgeTechWatcher = false;
+    enableLedgeTechFrameDisplay = false;
+    enableLedgeTechFramesOnLedgePopup = false;
+    enableLedgeTechGalintPopup = false;
 
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
@@ -174,7 +174,7 @@ bool PlayerData::resolvePlayerActionable() {
         return true; // already became actionable..
     }
 
-    if (occupiedActionableStateThisFrame) {
+    if (current->occupiedActionableStateThisFrame) {
         OSReport(strAttackActionable, player.playerNumber);
         OSReport("action\n  - Prev Act/Subact: %s/%s\n  - Cur Act/Subact: %s/%s\n",
             actionName(player.prev->action), player.prev->subactionStr(),
@@ -223,7 +223,7 @@ bool PlayerData::resolveTargetActionable() {
         return true; // already happened.
     }
 
-    if (target.occupiedActionableStateThisFrame) {
+    if (target.current->occupiedActionableStateThisFrame) {
         OSReport(strDefActionable, target.playerNumber);
         OSReport("action\n\t- Prev Act/Sub: %s/%s\n\t- Cur Act/Sub: %s/%s\n",
             actionName(target.prev->action), target.prev->subactionName,
@@ -245,11 +245,18 @@ bool PlayerData::resolveTargetActionable() {
 }
 
 
-Popup* PlayerData::createPopup()
+Popup* PlayerData::createPopup(const char* fmt, ...)
 {
+    va_list args;
+    va_start(args, fmt);
+
     Popup* popup = new Popup();
+    popup->vprintf(fmt, args);
     playerPopups[playerNumber].append(*popup);
+
+    va_end(args);
     return popup;
+
 }
 
 #pragma region current_aliases
@@ -330,7 +337,7 @@ bool PlayerDataOnFrame::inIasa() const {
 
 bool PlayerDataOnFrame::inGroundedIasa() const {
     const InterruptGroupStates& ig = interruptGroups;
-    return canCancel || (ig.groundAttack | ig.groundDodge | ig.groundGrab | ig.groundGuard | ig.groundJump | ig.groundSpecial);
+    return !isAirborne && (canCancel || (ig.groundAttack | ig.groundDodge | ig.groundGrab | ig.groundGuard | ig.groundJump | ig.groundSpecial));
 }
 
 bool PlayerData::inIasa() const {
@@ -344,18 +351,7 @@ bool PlayerData::inGroundedIasa() const
 
 bool PlayerData::isGroundedActionable()
 {
-    if (_computedGroundedActionable) { return _groundedActionable; }
-    // Cleared every frame.
-    _computedGroundedActionable = true;
-
-
-    _groundedActionable = false;
-    
-    if (current->isAirborne) {
-        return _groundedActionable;
-    }
-
-    _groundedActionable = _groundedActionable || (occupiedActionableStateThisFrame);
+    bool _groundedActionable = _groundedActionable || (current->occupiedActionableStateThisFrame);
     _groundedActionable = _groundedActionable || (inGroundedIasa());
 
     return _groundedActionable;
@@ -378,9 +374,12 @@ void PlayerData::prepareNextFrame() {
     current->action = prev->action;
     current->actionName = prev->actionName;
     current->isAirborne = prev->isAirborne;
+    current->occupiedGroundedIasaThisFrame = false;
+    current->occupiedGroundedIasaThisFrame = prev->inGroundedIasa(); // This method uses the field it is setting.
+    current->ledgeIntan = 0;
     didActionChange = false;
-    occupiedActionableStateThisFrame = isDefinitelyActionable(current->action);
-    occupiedWaitingStateThisFrame = (current->action == ACTION_WAIT);
+    current->occupiedActionableStateThisFrame = isDefinitelyActionable(prev->action);
+    current->occupiedWaitingStateThisFrame = (prev->action == ACTION_WAIT);
 
     _computedGroundedActionable = false;
 }
@@ -394,6 +393,11 @@ void PlayerData::setAction(u16 newAction) {
     if (isDefinitelyActionable(newAction)) {
         occupiedActionableStateThisFrame = true;
     }
+
+    if (current->inGroundedIasa()) {
+        current->occupiedGroundedIasaThisFrame = true;
+    }
+
     if (newAction == ACTION_WAIT) {
         occupiedWaitingStateThisFrame = true;
     }

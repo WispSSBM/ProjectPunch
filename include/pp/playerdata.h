@@ -19,6 +19,14 @@ class AnimCmdWatcher;
 class StatusChangeWatcher;
 class LedgeTechWatcher;
 
+enum HurtboxStatus {
+    NORMAL = 0,
+    INVIN = 1,
+    INTAN = 2,
+    INTAN_NO_FLASH = 3,
+    INTAN_FAST_FLASH = 4
+};
+
 // 0 indexed unlike the 
 union InterruptGroupStates {
     InterruptGroupStates() {
@@ -68,16 +76,26 @@ struct PlayerDataOnFrame {
 
     float subactionFrame;        // 0x10
     float subactionTotalFrames;  // 0x14
-    u32 lowRABits;               // 0x18
-    u16 actionFrame;             // 0x1C
-    u16 hitstun;                 // 0x1E
+    int ledgeIntan;              // 0x18
+    u32 lowRABits;               // 0x1C
+    u16 actionFrame;             // 0x20
+    u16 hitstun;                 // 0x22
 
-    u16 shieldstun;              // 0x20
+    u16 shieldstun;              // 0x24
 
-    bool canCancel;              // 0x22
-    bool isAirborne;             // 0x23
-    bool didConnectAttack;       // 0x24
-    InterruptGroupStates interruptGroups; // 0x25?
+    HurtboxStatus bodyHurtboxType; // 0x28
+
+    bool canCancel;              // 0x29
+    bool isAirborne;             // 0x2A
+    bool didConnectAttack;       // 0x2B
+
+    // These flags help with cases where we go through more than one state in the same frame.
+    // in setAction(), we check the new action and set these flags if the new action is actionable.
+    // This flag is also set at the beginning of the new frame based on the current action.
+    bool occupiedGroundedIasaThisFrame; // 0x2C
+    bool occupiedActionableStateThisFrame; // 0x2D
+    bool occupiedWaitingStateThisFrame; // 0x2E
+    InterruptGroupStates interruptGroups; // 0x30?
 
     bool inIasa() const;
     bool inGroundedIasa() const;
@@ -121,11 +139,6 @@ struct PlayerData {
     /* flags that clear between frames*/
     // Set by the event system.
     u32 didActionChange: 1;
-    // This flag helps with cases where we go through more than one state in the same frame.
-    // in setAction(), we check the new action and set this flag if the new action is actionable.
-    // This flag is also set at the beginning of the new frame based on the current action.
-    u32 occupiedActionableStateThisFrame: 1;
-    u32 occupiedWaitingStateThisFrame: 1;
 
     /* display flags */
     // These aren't bitfields because you can't take a pointer to a bitfield, and that
@@ -137,10 +150,12 @@ struct PlayerData {
     bool enableWaitOverlay;        // 0x48
     bool enableDashOverlay;        // 0x49
     bool enableIasaOverlay;        // 0x4A
-    bool enableLedgeTechWatcher;   // 0x4B
+    bool enableLedgeTechGalintPopup;
+    bool enableLedgeTechFrameDisplay;
+    bool enableLedgeTechFramesOnLedgePopup;
 
-    AnimCmdWatcher* animCmdWatcher;  // 0x4C
-    StatusChangeWatcher* statusChangeWatcher; // 0x50
+    AnimCmdWatcher* animCmdWatcher;
+    StatusChangeWatcher* statusChangeWatcher;
     LedgeTechWatcher* ledgeTechWatcher;
 
     /* aliases for fields on Current*/
@@ -176,7 +191,7 @@ struct PlayerData {
     void resetTargeting();
     bool resolvePlayerActionable();
     bool resolveTargetActionable();
-    Popup* createPopup();
+    Popup* createPopup(const char* fmt, ...);
     int debugStr(char* buffer);
 
     private:

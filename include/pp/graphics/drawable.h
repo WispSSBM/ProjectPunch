@@ -120,6 +120,8 @@ struct Renderables {
     RenderTimes items;
 };
 
+void drawItem(Drawable* item);
+
 extern Renderables renderables;
 
 }
