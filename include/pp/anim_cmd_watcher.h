@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdlib>
-#include <so/anim_cmd/so_anim_cmd_event_observer.h>
+#include <so/event/so_event_observer.h>
 #include <ft/fighter.h>
 
 #include "pp/playerdata.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <so/anim_cmd/so_anim_cmd.h>
+#include <so/anim/so_anim_cmd.h>
 
 namespace PP {
 
