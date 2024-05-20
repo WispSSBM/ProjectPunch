@@ -144,8 +144,6 @@ namespace PP {
     #define PP_DEBUG_LEDGETECH
     #endif
 
-    #define PP_DEBUG_LEDGETECH
-
     // #define PP_MENU_DISPLAY_DEBUG
 
     /* Conditional print functions */

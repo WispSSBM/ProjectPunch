@@ -125,10 +125,10 @@ bool needsInitializing() {
 
 // main entry point.
 void updatePreFrame() {
-    renderables.renderPre();
+    /* Putting this first means that stuff like popups and the menu are drawn on top of it. */
     LedgeTechDisplayDrawable::drawInstance();
+    renderables.renderPre();
 
-    frameCounter += 1;
     #ifdef PP_DEBUG_MEM
     if (frameCounter % 300 == 0) {
         gfHeapManager::dumpList();
@@ -177,17 +177,6 @@ void updatePreFrame() {
             }
         }
 
-        for(idx = 0; idx < fighterCount; idx++) {
-            PlayerData& playerData = allPlayerData[idx];
-
-            if (playerData.didActionChange && playerData.current->occupiedActionableStateThisFrame) {
-                playerData.didStartAttack = true;
-            }
-
-            if (playerData.didStartAttack) {
-                playerData.resolvePlayerActionable();
-            }
-        }
 
         for (idx = 0; idx < fighterCount; idx++) {
             resolveAttackTarget(idx);
@@ -231,6 +220,18 @@ void updatePreFrame() {
         g_watermark.process();
 
         for (idx = 0; idx < fighterCount; idx++) {
+            /*
+             * The location of this determines whether event handlers are considered on the
+             * same frame or a previous frame. If this is at the beginning, it means that the
+             * event handlers are considered as part of the previous frame, but they have full
+             * access to that frame's gathered data. 
+             * 
+             * Doing this at the END means that the event handlers can modify the *current* frame but
+             * they have to access the previous frame's data for more accurate calculations. This is more
+             * accurate anyway, given that our update hook currently is placed at the very end of
+             * the game's update loop.
+             *
+             */
             allPlayerData[idx].prepareNextFrame();
         }
     } else { // end if we're a relevant scene.
@@ -244,6 +245,7 @@ void updatePreFrame() {
     }
 
     renderables.renderAll();
+    frameCounter++;
     startNormalDraw();
 }
 
@@ -346,12 +348,15 @@ void gatherData(u8 playerEntryIdx) {
             allPlayerData[playerNumber].showOnHitAdvantage = false;
 
             if (getScene() == TRAINING_MODE_MMS) {
-                allPlayerData[playerNumber].enableLedgeTechFramesOnLedgePopup = true;
+                allPlayerData[playerNumber].enableLedgeTechFramesOnLedgePopup = false;
+                allPlayerData[playerNumber].enableLedgeTechGalintPopup = true;
                 allPlayerData[playerNumber].enableLedgeTechFrameDisplay = true;
             }
         };
         playerData.prepareNextFrame();
     }
+
+    playerData.preFrame();
 
     PlayerDataOnFrame& currentData = *playerData.current;
     PlayerDataOnFrame& prevData = *playerData.current;
@@ -412,6 +417,7 @@ void gatherData(u8 playerEntryIdx) {
             /* TODO: Rework with event system */
             if (playerData.didReceiveShieldstun()) {
                 playerData.maxShieldstun = currentData.shieldstun;
+                playerData.attackStartFrame = frameCounter;
                 playerData.becameActionableOnFrame = -1;
                 playerData.advantageBonusCounter = 0;
             }
@@ -432,6 +438,7 @@ void gatherData(u8 playerEntryIdx) {
             /* TODO: Rework with event system */
             if (playerData.didReceiveHitstun()) {
                 playerData.maxHitstun = remainingHitstun;
+                playerData.attackStartFrame = frameCounter;
                 playerData.becameActionableOnFrame = -1;
                 playerData.advantageBonusCounter = 0;
             }
@@ -475,6 +482,10 @@ void gatherData(u8 playerEntryIdx) {
                 playerData.current->ledgeIntan = playerData.prev->ledgeIntan - 1;
             }
         }
+    }
+
+    if (cancelModule != NULL) {
+        playerData.current->canCancel = playerData.current->canCancel || cancelModule->isEnableCancel();
     }
 
     if (playerData.enableLedgeTechFrameDisplay || playerData.enableLedgeTechFramesOnLedgePopup || playerData.enableLedgeTechGalintPopup) {
@@ -523,8 +534,8 @@ void resolveAttackTarget(u8 playerIdx) {
 void checkAttackTargetActionable(u8 playerNum) {
     PlayerData& player = allPlayerData[playerNum];
 
-    // Player is attacking someone.
-    if (player.attackTarget != NULL){
+    // Player is attacking someone. The second check guards against frame 1 moves.
+    if (player.attackTarget != NULL && player.hasStartedAttack()){
         PlayerData& target = *(player.attackTarget);
 
         bool targetIsActionable = target.resolveTargetActionable();
@@ -539,9 +550,9 @@ void checkAttackTargetActionable(u8 playerNum) {
             /* > 30 frames is generally judge-able with a human eye anyway. */
             if (advantage > -50 && advantage < 50) {
                 if (player.isAttackingFighter && player.showOnHitAdvantage) {
-                    player.createPopup("On-Hit: %d\n", advantage);
+                    player.createPopup("OnHit: %+d\n", advantage);
                 } else if (player.isAttackingShield && player.showOnShieldAdvantage) {
-                    player.createPopup("On-Shield: %d\n", advantage);
+                    player.createPopup("OnShield: %+d\n", advantage);
                 }
             }
 

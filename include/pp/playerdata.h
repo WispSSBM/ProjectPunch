@@ -62,8 +62,10 @@ union InterruptGroupStates {
     bool asArray[0x13];
 };
 
-// This is stuff that changes on every frame.
-struct PlayerDataOnFrame {
+// This is stuff that changes on every frame. This struct gets
+// set with memset, so making it virtual is a bad idea(tm).
+class PlayerDataOnFrame {
+public:
     PlayerDataOnFrame();
     ~PlayerDataOnFrame() {
         DEBUG_CTOR("PlayerDataOnFrame dtor @ 0x%0x\n", this);
@@ -92,9 +94,11 @@ struct PlayerDataOnFrame {
     // These flags help with cases where we go through more than one state in the same frame.
     // in setAction(), we check the new action and set these flags if the new action is actionable.
     // This flag is also set at the beginning of the new frame based on the current action.
-    bool occupiedGroundedIasaThisFrame; // 0x2C
-    bool occupiedActionableStateThisFrame; // 0x2D
-    bool occupiedWaitingStateThisFrame; // 0x2E
+    bool occupiedGroundedIasa; // 0x2C
+    bool occupiedActionableState; // 0x2D
+    bool occupiedWaitingState; // 0x2E
+    bool actionChanged;
+
     InterruptGroupStates interruptGroups; // 0x30?
 
     bool inIasa() const;
@@ -130,9 +134,10 @@ struct PlayerData {
     PlayerDataOnFrame* prev;       // 0x28
     PlayerDataOnFrame* current;    // 0x2C
 
+    int attackStartFrame;        // 0x30
+
     /* flags that persist between frames. These are mostly targeting related. */
-    u32 didStartAttack : 1;        // 0x30
-    u32 didConnectAttack : 1;
+    u32 didConnectAttack : 1; // 0x34
     u32 isAttackingShield : 1;
     u32 isAttackingFighter : 1;
 
@@ -161,7 +166,6 @@ struct PlayerData {
     /* aliases for fields on Current*/
     u16 action() const;
     const char* actionStr() const;
-    u16 actionFrame() const;
     u32 raLowBits() const;
 
     u16 subaction() const;
@@ -172,6 +176,7 @@ struct PlayerData {
     int writeLowRABoolStr(char* buffer) const;
 
     /* Derived information. */
+    bool hasStartedAttack() const;
     bool didReceiveHitstun() const;
     bool didReceiveShieldstun() const;
     bool canCancel() const;
@@ -182,6 +187,7 @@ struct PlayerData {
     bool inIasa() const;
     bool inGroundedIasa() const;
     bool isGroundedActionable();
+    void preFrame();
     void prepareNextFrame();
     void setAction(u16 newAction);
 
@@ -193,10 +199,6 @@ struct PlayerData {
     bool resolveTargetActionable();
     Popup* createPopup(const char* fmt, ...);
     int debugStr(char* buffer);
-
-    private:
-    bool _computedGroundedActionable;
-    bool _groundedActionable;
 };
 
 struct PlayerDisplayOptions {

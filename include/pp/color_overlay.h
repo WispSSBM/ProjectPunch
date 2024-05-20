@@ -16,4 +16,12 @@ bool processWaitOverlay(const PlayerData& player, soColorBlendModule& cbm);
 bool processDashOverlay(const PlayerData& player, soColorBlendModule& cbm);
 bool processIasaOverlay(const PlayerData& player, soColorBlendModule& cbm);
 
+/* Ideas: 
+ *
+ * - GALINT overlay
+ * - All invi/intan overlay
+ * -  
+ * 
+ */
+
 } // namespace

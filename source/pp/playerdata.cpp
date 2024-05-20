@@ -35,12 +35,13 @@ bool startsWith(const char* testStr, const char* prefix) {
 PlayerData::PlayerData() {
     becameActionableOnFrame = -1;
     lastAttackEndedOnFrame = -1; // currently unused.
+    attackStartFrame = -1;
+
     prev = new PlayerDataOnFrame();
     current = new PlayerDataOnFrame();
     fighterName = NULL;
     attackTarget = NULL;
 
-    didStartAttack = false;
     didConnectAttack = false;
     isAttackingShield = false;
     isAttackingFighter = false;
@@ -103,15 +104,13 @@ PlayerDataOnFrame::PlayerDataOnFrame() {
         hitstun = 0;
         shieldstun = 0;
 
-        canCancel = false;
-        didConnectAttack = false;
-        isAirborne = false;
 }
 
 void PlayerData::resetTargeting() {
     attackTarget = NULL;
     becameActionableOnFrame = -1;
     advantageBonusCounter = 0;
+    attackStartFrame = frameCounter;
     isAttackingShield = false;
     isAttackingFighter = false;
 }
@@ -166,7 +165,7 @@ bool PlayerDataOnFrame::getLowRABit(u32 idx) const {
 }
 
 
-const char* strAttackActionable = "ATKR %d now actionable via ";
+const char* strAttackActionable = "[f%d] ATKR %d now actionable via ";
 bool PlayerData::resolvePlayerActionable() {
     PlayerData& player = *this;
     int currentAction = player.current->action;
@@ -174,8 +173,8 @@ bool PlayerData::resolvePlayerActionable() {
         return true; // already became actionable..
     }
 
-    if (current->occupiedActionableStateThisFrame) {
-        OSReport(strAttackActionable, player.playerNumber);
+    if (current->occupiedActionableState) {
+        OSReport(strAttackActionable, frameCounter, player.playerNumber);
         OSReport("action\n  - Prev Act/Subact: %s/%s\n  - Cur Act/Subact: %s/%s\n",
             actionName(player.prev->action), player.prev->subactionStr(),
             actionName(currentAction), player.current->subactionStr()
@@ -185,7 +184,7 @@ bool PlayerData::resolvePlayerActionable() {
     }
 
     if (player.current->canCancel) {
-        OSReport(strAttackActionable, player.playerNumber);
+        OSReport(strAttackActionable, frameCounter, player.playerNumber);
         OSReport("%s\n", "ftCancelModule");
         player.becameActionableOnFrame = frameCounter;
         return true;
@@ -195,10 +194,10 @@ bool PlayerData::resolvePlayerActionable() {
     // get an autocancel. Technically there are also iasa frames
     // in the air, that are separate from the AC window,
     // but most people conflate the two.
-    if (player.inIasa() && !(player.current->isAirborne)) {
-        OSReport(strAttackActionable, player.playerNumber);
+    if (player.current->occupiedGroundedIasa) {
+        OSReport(strAttackActionable, frameCounter, player.playerNumber);
         OSReport("via IASA\n");
-        player.becameActionableOnFrame = frameCounter + 1;
+        player.becameActionableOnFrame = frameCounter;
         return true;
     }
 
@@ -215,7 +214,7 @@ bool PlayerData::inActionableState() const {
 };
 
 
-const char* strDefActionable = "TGT %d now actionable via ";
+const char* strDefActionable = "[f%d] TGT %d now actionable via ";
 bool PlayerData::resolveTargetActionable() {
     PlayerData& target = *this;
 
@@ -223,8 +222,15 @@ bool PlayerData::resolveTargetActionable() {
         return true; // already happened.
     }
 
-    if (target.current->occupiedActionableStateThisFrame) {
-        OSReport(strDefActionable, target.playerNumber);
+    if (target.current->hitstun == 0 && target.current->shieldstun == 0) {
+        OSReport(strDefActionable, frameCounter, target.playerNumber);
+        OSReport("hitstun\n");
+        target.becameActionableOnFrame = frameCounter;
+        return true;
+    }
+
+    if (target.current->occupiedActionableState) {
+        OSReport(strDefActionable, frameCounter, target.playerNumber);
         OSReport("action\n\t- Prev Act/Sub: %s/%s\n\t- Cur Act/Sub: %s/%s\n",
             actionName(target.prev->action), target.prev->subactionName,
             actionName(target.current->action), target.current->subactionName
@@ -233,13 +239,6 @@ bool PlayerData::resolveTargetActionable() {
         return true;
     }
 
-    if (target.current->hitstun == 0 && target.current->shieldstun == 0) {
-        OSReport(strDefActionable, target.playerNumber);
-        OSReport("hitstun\n");
-        target.becameActionableOnFrame = frameCounter;
-        return true;
-
-    }
 
     return false;
 }
@@ -303,6 +302,14 @@ bool PlayerData::didEnterShield() const {
     return (didActionChange && this->current->action == ACTION_GUARDON);
 }
 
+bool PlayerData::hasStartedAttack() const {
+    /* On the frame an attack has begun, the attacker is considered actionable
+     * since they were able to input an attack that frame. Thus we check to make
+     * sure we're not checking actionability on the same frame.
+     */
+    return (attackStartFrame >= 0 && attackStartFrame != frameCounter);
+}
+
 bool PlayerData::didReceiveHitstun() const {
         return current->hitstun != 0 && (current->hitstun > prev->hitstun);
 }
@@ -351,14 +358,22 @@ bool PlayerData::inGroundedIasa() const
 
 bool PlayerData::isGroundedActionable()
 {
-    bool _groundedActionable = _groundedActionable || (current->occupiedActionableStateThisFrame);
-    _groundedActionable = _groundedActionable || (inGroundedIasa());
-
-    return _groundedActionable;
+    return (
+        current->occupiedActionableState
+        || current->occupiedGroundedIasa
+    );
 }
 
 bool PlayerDataOnFrame::canAutocancel() const {
     return getLowRABit(RA_BIT_ENABLE_LANDING_LAG) != true;
+}
+
+void PlayerData::preFrame() {
+    if (!didActionChange) {
+        current->occupiedActionableState = isDefinitelyActionable(current->action);
+        current->occupiedGroundedIasa = current->inGroundedIasa(); // This method uses the field it is setting.
+        current->occupiedWaitingState = (current->action == ACTION_WAIT);
+    }
 }
 
 void PlayerData::prepareNextFrame() {
@@ -370,18 +385,12 @@ void PlayerData::prepareNextFrame() {
     memset(current, 0, sizeof(PlayerDataOnFrame));
     // These get reset every time there's an action change.
     memcpy(&current->interruptGroups, &prev->interruptGroups, sizeof(current->interruptGroups));
-    current->canCancel = prev->canCancel;
     current->action = prev->action;
     current->actionName = prev->actionName;
     current->isAirborne = prev->isAirborne;
-    current->occupiedGroundedIasaThisFrame = false;
-    current->occupiedGroundedIasaThisFrame = prev->inGroundedIasa(); // This method uses the field it is setting.
     current->ledgeIntan = 0;
-    didActionChange = false;
-    current->occupiedActionableStateThisFrame = isDefinitelyActionable(prev->action);
-    current->occupiedWaitingStateThisFrame = (prev->action == ACTION_WAIT);
 
-    _computedGroundedActionable = false;
+    didActionChange = false;
 }
 
 void PlayerData::setAction(u16 newAction) {
@@ -391,15 +400,15 @@ void PlayerData::setAction(u16 newAction) {
     current->isAirborne = false;
     didActionChange = true;
     if (isDefinitelyActionable(newAction)) {
-        occupiedActionableStateThisFrame = true;
+        current->occupiedActionableState = true;
     }
 
     if (current->inGroundedIasa()) {
-        current->occupiedGroundedIasaThisFrame = true;
+        current->occupiedGroundedIasa = true;
     }
 
     if (newAction == ACTION_WAIT) {
-        occupiedWaitingStateThisFrame = true;
+        current->occupiedWaitingState = true;
     }
     memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
 }

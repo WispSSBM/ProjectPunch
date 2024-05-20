@@ -91,6 +91,7 @@ class LedgeTechWatcher: public StatusChangeWatcher {
             _currentFrameCounter = &_cliffWaitFrames;
             _cliffWaitStartFrame = -1;
             _visualDurationFrames = LEDGEDASH_DEFAULT_DISPLAY_DURATION;
+            _wasReset = true;
             opacity = 0xBB;
         };
 
@@ -123,6 +124,7 @@ class LedgeTechWatcher: public StatusChangeWatcher {
 
         u8 opacity;
     private:
+        bool _wasReset;
         bool _isOnLedge;
         bool _didShowLedgeDash;
 

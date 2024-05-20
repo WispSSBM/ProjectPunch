@@ -43,6 +43,7 @@ bool AnimCmdWatcher::notifyEventAnimCmd(acAnimCmd* acmd, soModuleAccesser* modul
                         // air ints in the air.
                         if (cmdArgVal <= 8) {
                             m_playerData->current->isAirborne = false;
+                            m_playerData->current->occupiedGroundedIasa = true;
                         } else if (cmdArgVal <= 16) {
                             m_playerData->current->isAirborne = true;
                         }
@@ -50,19 +51,15 @@ bool AnimCmdWatcher::notifyEventAnimCmd(acAnimCmd* acmd, soModuleAccesser* modul
                 }
             }
         } else if (cmd.m_module == AnimCmdModuleNum::ftCancelModule) {
-            DEBUG_ANIMCMD("[f%d, P%d, %s, %d] Setting canCancel= %c\n", 
-                frameCounter, 
-                m_playerData->playerNumber, 
-                m_playerData->fighterName, 
-                interpreterId, 
-                cmd.m_code == 0 ? 'T' : 'F'
-            );
             if (cmd.m_code == 0) {
-
+                DEBUG_ANIMCMD("[f%d, P%d, %s, %d] Setting canCancel=T\n", 
+                    frameCounter, 
+                    m_playerData->playerNumber, 
+                    m_playerData->fighterName, 
+                    interpreterId 
+                );
                 m_playerData->current->canCancel = true;
-            } else if (cmd.m_code == 1) {
-                m_playerData->current->canCancel = false;
-            }
+            } 
         }
     }
 
