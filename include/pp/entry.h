@@ -1,6 +1,6 @@
 #pragma once
 
-#define PP_VERSION "1.1.0"
+#define PP_VERSION "1.1.1"
 
 namespace PP {
     namespace Entry {

@@ -9,28 +9,14 @@
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
 #include "pp/ledge_tech.h"
+#include "pp/graphics/text_printer.h"
+#include "pp/ui.h"
 
 namespace PP {
 
 extern u32 frameCounter;
+
 PlayerData* allPlayerData = NULL;
-
-
-bool startsWith(const char* testStr, const char* prefix) {
-    while (*prefix != '\0') {
-        if (*testStr == '\0') {
-            return false;
-        }
-
-        if (*prefix != *testStr) {
-            return false;
-        }
-
-        prefix++;
-        testStr++;
-    }
-    return true;
-}
 
 PlayerData::PlayerData() {
     becameActionableOnFrame = -1;
@@ -59,10 +45,14 @@ PlayerData::PlayerData() {
     enableLedgeTechFrameDisplay = false;
     enableLedgeTechFramesOnLedgePopup = false;
     enableLedgeTechGalintPopup = false;
+    enableLedgeTechAirdodgeAngle = false;
 
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
     ledgeTechWatcher = NULL;
+
+    maxPopupLimit = 3;
+    maxLedgedashVizFrames = 40;
 
     charId = Fighter_Mario;
     taskId = -1;
@@ -89,34 +79,29 @@ PlayerData::~PlayerData() {
     delete prev;
 }
 
-PlayerDataOnFrame::PlayerDataOnFrame() {
-        DEBUG_CTOR("PlayerDataOnFrame ctor: this=0x%x\n", this);
+void PlayerData::setAction(u16 newAction) {
+    current->action = newAction;
+    current->actionName = actionName(newAction);
+    current->canCancel = false;
+    current->isAirborne = false;
+    didActionChange = true;
+    if (isDefinitelyActionable(newAction)) {
+        current->occupiedActionableState = true;
+    }
 
+    if (current->inGroundedIasa()) {
+        current->occupiedGroundedIasa = true;
+    }
 
-        action = 0;
-        actionName = NULL;
-        subaction = 0;
-        subactionFrame = 0;
-        subactionName = NULL;
-        subactionTotalFrames = 0;
-
-        lowRABits = 0;
-        hitstun = 0;
-        shieldstun = 0;
-
+    if (newAction == ACTION_WAIT) {
+        current->occupiedWaitingState = true;
+    }
+    memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
 }
 
-void PlayerData::resetTargeting() {
-    attackTarget = NULL;
-    becameActionableOnFrame = -1;
-    advantageBonusCounter = 0;
-    attackStartFrame = frameCounter;
-    isAttackingShield = false;
-    isAttackingFighter = false;
-}
+#pragma region display
 
-
-int PlayerData::debugStr(char* buffer) {
+int PlayerData::debugStr(char* buffer) const {
     PlayerDataOnFrame& f = *(this->current);
     char raBits[50];
     this->writeLowRABoolStr(raBits);
@@ -137,33 +122,56 @@ int PlayerData::debugStr(char* buffer) {
 }
 
 int PlayerData::writeLowRABoolStr(char* buffer) const {
-    /* sizeof(buffer) should probably be at least 50. */
-    char boolVal;
-    char* start = buffer;
-
-    for (int j = 0; j < 32; j++) { // one int's worth of data
-        *(buffer++) = ((this->current->lowRABits & (0x1 << j)) >> j) == 1 ? '1' : '0';
-
-        if ((j % 8) == 7 && j != 31) {
-            *(buffer++) = ' ';
-        }
-    }
-
-    *(buffer--) = '\0';
-
-    return buffer - start;
+    return printBinaryString(buffer, this->current->lowRABits);
 }
 
+void PlayerData::printFighterState() const {
+    this->debugStr(strManipBuffer);
+    printer.renderPre = true;
+    printer.boxPadding = 10;
+    printer.boxBgColor = 0x00000000;
+    printer.boxHighlightColor = 0x00000000;
+    printer.boxBorderWidth = 0;
+    printer.opacity = 0xBB;
+    printer.setTextColor(0xFFFFFFFF);
+    printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
+    printer.setTextBorder(0x000000FF, 1.0f);
+    printer.setPosition(35,35);
 
-bool PlayerDataOnFrame::getLowRABit(u32 idx) const {
-    if (idx >= 32) {
-        OSReport("WARNING: Asked for ra-bit that's too high.\n");
-        return false;
-    }
-
-    return 1 == ((this->lowRABits & (1 << idx)) >> idx);
+    printer.begin();
+    printer.print(strManipBuffer);
+    printer.renderBoundingBox();
 }
 
+Popup* PlayerData::createPopup(const char* fmt, ...)
+{
+    if (playerPopups[playerNumber].length >= this->maxPopupLimit) {
+        playerPopups->removeEnd();
+    }
+
+    va_list args;
+    va_start(args, fmt);
+
+    Popup* popup = new Popup();
+    popup->vprintf(fmt, args);
+    playerPopups[playerNumber].prepend(*popup);
+
+    va_end(args);
+    return popup;
+}
+
+#pragma endregion
+
+#pragma region targeting
+
+void PlayerData::resetTargeting() {
+    attackTarget = NULL;
+    becameActionableOnFrame = -1;
+    advantageBonusCounter = 0;
+    attackStartFrame = frameCounter;
+    isAttackingShield = false;
+    isAttackingFighter = false;
+}
 
 const char* strAttackActionable = "[f%d] ATKR %d now actionable via ";
 bool PlayerData::resolvePlayerActionable() {
@@ -204,16 +212,6 @@ bool PlayerData::resolvePlayerActionable() {
     return false;
 }
 
-
-bool PlayerData::inAttackState() const {
-    return isAttackingAction(this->current->action);
-};
-
-bool PlayerData::inActionableState() const {
-    return isDefinitelyActionable(this->current->action);
-};
-
-
 const char* strDefActionable = "[f%d] TGT %d now actionable via ";
 bool PlayerData::resolveTargetActionable() {
     PlayerData& target = *this;
@@ -242,21 +240,7 @@ bool PlayerData::resolveTargetActionable() {
 
     return false;
 }
-
-
-Popup* PlayerData::createPopup(const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-
-    Popup* popup = new Popup();
-    popup->vprintf(fmt, args);
-    playerPopups[playerNumber].append(*popup);
-
-    va_end(args);
-    return popup;
-
-}
+#pragma endregion
 
 #pragma region current_aliases
 u16 PlayerData::action() const {
@@ -275,14 +259,7 @@ u16 PlayerData::subaction() const {
     return current->subaction;
 }
 
-const char* PlayerDataOnFrame::subactionStr() const {
-    if (subactionName == NULL || subactionName == (char*)0xCCCCCCCC) {
-        return "UNKNOWN";
-    } else {
-        return subactionName;
-    };
 
-}
 const char* PlayerData::subactionStr() const {
     return current->subactionStr();
 }
@@ -297,6 +274,14 @@ float PlayerData::subactionTotalFrames() const {
 #pragma endregion
 
 #pragma region predicates
+
+bool PlayerData::inAttackState() const {
+    return isAttackingAction(this->current->action);
+};
+
+bool PlayerData::inActionableState() const {
+    return isDefinitelyActionable(this->current->action);
+};
 
 bool PlayerData::didEnterShield() const {
     return (didActionChange && this->current->action == ACTION_GUARDON);
@@ -327,26 +312,6 @@ bool PlayerData::didSubactionChange() const {
     return (prev->subaction != current->subaction);
 }
 
-bool PlayerDataOnFrame::isShielding() const {
-    return (action == ACTION_GUARD || action == ACTION_GUARDDAMAGE || action == ACTION_GUARDON);
-}
-
-bool PlayerDataOnFrame::inIasa() const {
-    const InterruptGroupStates& ig = interruptGroups;
-    if (isAirborne == true) {
-        // IASA in the air is more for people being able to cancel tumble rather than something that's used a lot.
-        // It comes up occasionally with peach float dair.
-        return canAutocancel();
-    } else {
-        return inGroundedIasa();
-    }
-}
-
-bool PlayerDataOnFrame::inGroundedIasa() const {
-    const InterruptGroupStates& ig = interruptGroups;
-    return !isAirborne && (canCancel || (ig.groundAttack | ig.groundDodge | ig.groundGrab | ig.groundGuard | ig.groundJump | ig.groundSpecial));
-}
-
 bool PlayerData::inIasa() const {
     return current->inIasa();
 }
@@ -364,10 +329,9 @@ bool PlayerData::isGroundedActionable()
     );
 }
 
-bool PlayerDataOnFrame::canAutocancel() const {
-    return getLowRABit(RA_BIT_ENABLE_LANDING_LAG) != true;
-}
+#pragma endregion
 
+#pragma region lifecycle
 void PlayerData::preFrame() {
     if (!didActionChange) {
         current->occupiedActionableState = isDefinitelyActionable(current->action);
@@ -393,35 +357,12 @@ void PlayerData::prepareNextFrame() {
     didActionChange = false;
 }
 
-void PlayerData::setAction(u16 newAction) {
-    current->action = newAction;
-    current->actionName = actionName(newAction);
-    current->canCancel = false;
-    current->isAirborne = false;
-    didActionChange = true;
-    if (isDefinitelyActionable(newAction)) {
-        current->occupiedActionableState = true;
-    }
-
-    if (current->inGroundedIasa()) {
-        current->occupiedGroundedIasa = true;
-    }
-
-    if (newAction == ACTION_WAIT) {
-        current->occupiedWaitingState = true;
-    }
-    memset(&current->interruptGroups, 0, sizeof(InterruptGroupStates));
-}
-
 void PlayerData::initLedgeTechWatcher(Fighter& fighter)
 {
     LedgeTechWatcher* ledgeTechWatcher = new LedgeTechWatcher(&allPlayerData[playerNumber]);
     ledgeTechWatcher->registerWith(&fighter);
     allPlayerData[playerNumber].ledgeTechWatcher = ledgeTechWatcher;
 }
-
 #pragma endregion
-
-
 
 } // namespace

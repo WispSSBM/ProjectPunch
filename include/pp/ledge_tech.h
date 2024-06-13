@@ -96,7 +96,7 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         };
 
         void didCatchCliff(int fighterFrame, soModuleAccesser& modules);
-        void didCatchCliffEnd(int fighterFrame, soModuleAccesser& modules);
+        void didStartCliffWait(int fighterFrame, soModuleAccesser& modules);
         void didLeaveCliff(int fighterFrame, soModuleAccesser& modules, int newStatusKind);
         void didFinishLedgeDash(int fighterFrame, soModuleAccesser& modules);
         void didStartCliffJump(int fighterFrame, soModuleAccesser& modules);
@@ -104,6 +104,7 @@ class LedgeTechWatcher: public StatusChangeWatcher {
         void didStartCliffAttack(int fighterFrame, soModuleAccesser& modules);
         void didStartCliffClimb(int fighterFrame, soModuleAccesser& modules);
         void didStartFall(int fighterFrame, soModuleAccesser& modules);
+        void didStartAirdodge(int fighterFrame, soModuleAccesser& modules);
 
         bool shouldStopWatching();
         void resetState();
@@ -115,11 +116,11 @@ class LedgeTechWatcher: public StatusChangeWatcher {
 
         virtual void notifyEventChangeStatus(int statusKind, int prevStatusKind, soStatusData* statusData, soModuleAccesser* moduleAccesser);
         virtual void process(Fighter& fighter);
-        virtual bool isEnabled() { 
-            return (playerData != NULL
-                && (playerData->enableLedgeTechFrameDisplay 
-                    || playerData->enableLedgeTechGalintPopup 
-                    || playerData->enableLedgeTechFramesOnLedgePopup));
+        static bool isEnabled(const PlayerData& playerData) { 
+            return playerData.enableLedgeTechFrameDisplay 
+                    || playerData.enableLedgeTechGalintPopup 
+                    || playerData.enableLedgeTechFramesOnLedgePopup
+                    || playerData.enableLedgeTechAirdodgeAngle;
         };
 
         u8 opacity;

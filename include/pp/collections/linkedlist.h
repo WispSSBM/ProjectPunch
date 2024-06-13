@@ -34,6 +34,8 @@ class linkedlist {
 
         void append(T& element);
         void prepend(T& element);
+        void removeEnd();
+        void removeHead();
 
         size_t length;
     protected:
@@ -101,6 +103,35 @@ void linkedlist<T>::append(T& element) {
     newNode->next->prev = newNode;
     newNode->prev->next = newNode;
     length += 1;
+}
+
+template<class T>
+void linkedlist<T>::removeEnd() {
+    if (this->length == 0) { 
+        return;
+    }
+
+    listnode_t* toRemove = this->tailNode->prev;
+    toRemove->prev->next = toRemove->next;
+    toRemove->next->prev = toRemove->prev;
+    this->length -= 1;
+
+    delete reinterpret_cast<T*>(toRemove->data);
+    delete toRemove;
+}
+
+template<class T>
+void linkedlist<T>::removeHead() {
+    if (this->length == 0) { 
+        return;
+    }
+
+    listnode_t* toRemove = this->headNode->next;
+    toRemove->prev->next = toRemove->next;
+    toRemove->next->prev = toRemove->prev;
+    this->length -= 1;
+    delete reinterpret_cast<T*>(toRemove->data);
+    delete toRemove;
 }
 
 template <class T>

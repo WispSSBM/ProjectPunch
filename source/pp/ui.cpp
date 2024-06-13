@@ -23,8 +23,6 @@ namespace PP {
 
 using namespace Input;
 
-extern u32 frameCounter;
-
 /* EXTERN DEFS */
 PpunchMenu& punchMenu = *(new PpunchMenu());
 /************/
@@ -58,11 +56,14 @@ void PpunchMenu::init() {
         const char* ftName = player.fighterName;
         DEBUG_MENU("Adding page for P%d: %s @ 0x%x\n", player.playerNumber, ftName, (void*)&player);
         snprintf(newPage.title, 256, "P%d = %s", i+1, player.fighterName);
-        newPage.addOption(new BoolOption("Popup: On-Shield Advantage", player.showOnShieldAdvantage));
-        newPage.addOption(new BoolOption("Popup: On-Hit Advantage", player.showOnHitAdvantage));
-        newPage.addOption(new BoolOption("LedgeDash Frame Visual", player.enableLedgeTechFrameDisplay));
-        newPage.addOption(new BoolOption("Popup: GALINT", player.enableLedgeTechGalintPopup));
-        newPage.addOption(new BoolOption("Popup: Frame off ledge", player.enableLedgeTechFramesOnLedgePopup));
+        newPage.addOption(new IntOption<int>("Max On-Screen Displays", player.maxPopupLimit, 1, 10, true, false));
+        newPage.addOption(new BoolOption("On-Shield Adv OSD", player.showOnShieldAdvantage));
+        newPage.addOption(new BoolOption("On-Hit Adv OSD", player.showOnHitAdvantage));
+        newPage.addOption(new BoolOption("Ledgedash Visualization", player.enableLedgeTechFrameDisplay));
+        newPage.addOption(new IntOption<int>("Max Ledgedash Viz Frames", player.maxLedgedashVizFrames, 15, 64, true, false));
+        newPage.addOption(new BoolOption("GALINT OSD", player.enableLedgeTechGalintPopup));
+        newPage.addOption(new BoolOption("Frames-on-ledge OSD", player.enableLedgeTechFramesOnLedgePopup));
+        newPage.addOption(new BoolOption("Ledgedash Angle OSD", player.enableLedgeTechAirdodgeAngle));
         newPage.addOption(new BoolOption("Wait Overlay", player.enableWaitOverlay));
         newPage.addOption(new BoolOption("Dash Overlay", player.enableDashOverlay));
         newPage.addOption(new BoolOption("IASA Overlay", player.enableIasaOverlay));
@@ -81,6 +82,21 @@ void PpunchMenu::init() {
         */
 
         addPage(&newPage);
+
+        PadStatus pad;
+        pad.btns.bits = (
+            g_padStatus[0].btns.bits 
+            | g_padStatus[1].btns.bits 
+            | g_padStatus[2].btns.bits 
+            | g_padStatus[3].btns.bits
+        );
+
+        /* If it's a VS Mode, only show if L/R are held. In training mode, 
+            * auto-open the menu UNLESS L/R are held. 
+            */
+        if ((getScene() == VS) == (pad.btns.L == true || pad.btns.R == true)) {
+            punchMenu.toggle();
+        }
     }
 
     #ifdef PP_MENU_DISPLAY_DEBUG
@@ -186,14 +202,14 @@ void PpunchMenu::handleInput() {
             break; // shortcut
         }
 
-        if (!buttons.X && ((frameCounter - lastInputFrame) < PP_MENU_INPUT_SPEED)) {
+        if (!buttons.X && ((menuFrameCounter - lastInputFrame) < PP_MENU_INPUT_SPEED)) {
             #ifdef PP_MENU_INPUT_DEBUG
             OSReport("Bailed out by debounce: %d\n", btn.bits);
             #endif
             break; // debounce inputs.
         }
 
-        lastInputFrame = frameCounter;
+        lastInputFrame = menuFrameCounter;
 
         if (buttons.L && buttons.R && buttons.UpDPad) {
             menu.toggle();
@@ -406,9 +422,10 @@ Coord2D getHpPopupBoxCoords(int playerNum) {
 }
 
 
-
 void drawAllPopups() {
     for(int i = 0; i < PP_MAX_PLAYERS; i++) {
+        const PlayerData& playerData = allPlayerData[i];
+
         if (playerPopups[i].length > 0 ) {
             LinkedlistIterator<Popup> itr = LinkedlistIterator<Popup>(playerPopups[i]);
             Popup* popup;

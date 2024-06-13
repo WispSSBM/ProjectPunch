@@ -10,6 +10,7 @@
 #include <memory.h>
 
 #include "pp/main.h"
+#include "pp/utils.h"
 #include "pp/ui.h"
 #include "pp/collections/linkedlist.h"
 #include "pp/graphics/draw.h"
@@ -27,7 +28,7 @@ using namespace PP::Input;
 using namespace PP::Collections;
 
 namespace PP {
-bool initialized = false;
+bool battleSceneInitialized = false;
 
 
 /*
@@ -41,74 +42,13 @@ void checkMenuPaused(char* gfTaskSchedulerInst) {
     else { gfTaskSchedulerInst[0xB] &= ~0x8; }
 }
 
-soGeneralWorkSimple* getWorkVars(const Fighter& fighter, WorkModuleVarType varType) {
-    // assume the work manage module is of the normal impl type. Not technically typesafe, could use the proper brawl
-    // api surface later.
-    const soWorkManageModuleImpl& workModule = *reinterpret_cast<const soWorkManageModuleImpl*>(fighter.m_moduleAccesser->getWorkManageModule());
-    return reinterpret_cast<soGeneralWorkSimple*>(workModule.m_generalWorks[varType]);
-}
 
-bool getRABit(const Fighter& fighter, u32 idx) {
-    soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
-    // array
-    u32* raBools =  raVars.m_flagWorks;
-    int bitFieldsSize = raVars.m_flagWorkSize;
-
-    // printRABools(workModule);
-
-    if (!(idx < bitFieldsSize*8*4)) {
-        OSReport("Warning: asked for invalid RA bit %d from workModule %x.\n", idx, (void*)fighter.m_moduleAccesser->getWorkManageModule());
-        return false;
-    }
-
-    u32 bitsChunk = raBools[idx / 32];
-    char remainder = idx % 32;
-    if ((bitsChunk & (1 << remainder) >> remainder) == 0) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-void printMessage(char const* msg, float xPos, float yPos, Color color = PP_COLOR_WHITE){
-    OSReport("%s\n", msg);
-    printer.setTextColor(color);
-    printer.renderPre = true;
-    printer.boxBgColor = PP_COLOR_TRANSPARENT_GREY;
-    printer.boxPadding = 10;
-
-    printer.lineHeight = punchMenu.lineHeight();
-    printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
-    printer.setPosition(xPos, yPos);
-
-    printer.begin();
-    printer.print(msg);
-    printer.renderBoundingBox();
-}
-
-void printFighterState(PlayerData& playerData) {
-    playerData.debugStr(strManipBuffer);
-    printer.renderPre = true;
-    printer.boxPadding = 10;
-    printer.boxBgColor = 0x00000000;
-    printer.boxHighlightColor = 0x00000000;
-    printer.boxBorderWidth = 0;
-    printer.opacity = 0xBB;
-    printer.setTextColor(0xFFFFFFFF);
-    printer.setScale(punchMenu.baseFontScale, punchMenu.fontScaleMultiplier, punchMenu.lineHeightMultiplier);
-    printer.setTextBorder(0x000000FF, 1.0f);
-    printer.setPosition(35,35);
-
-    printer.begin();
-    printer.print(strManipBuffer);
-    printer.renderBoundingBox();
-}
 
 /*
  * This basically waits until all fighters have fully spawned in and triggers when GO! is displayed.
  */
-bool needsInitializing() {
-    if (initialized) return false;
+bool battleSceneNeedsInitializing() {
+    if (battleSceneInitialized) return false;
     int fighters = g_ftManager->getEntryCount();
     if (fighters == 0) { return false; }
     for (char i =  0; i < fighters; i++) {
@@ -135,108 +75,14 @@ void updatePreFrame() {
     }
     #endif
 
-
-    // TODO: tried to use gfSceneManager to do this, but both training and normal fights are scMelee, so something else
-    // is needed to distinguish them.
     SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
 
     // Do nothing if not in a game.
     if (sceneType == VS || sceneType == TRAINING_MODE_MMS) {
-        if (!initialized) {
-            if (!needsInitializing()) {
-                DEBUG_INIT("Bailing out to start early\n");
-                startNormalDraw();
-                return;
-            } else {
-                // Don't let the frame counter count up forever.
-                // In one game it is highly unlikely to overflow a u32.
-                // There are ~200k frames in an hour, and a u32's range is
-                // over 4 billion. We do this here instead of at the end with the
-                // punch menu because the punch menu wants to be setup with gathered data,
-                // whereas the framecounter wants to be set before anything happens.
-                frameCounter = 0;
-                if (allPlayerData == NULL) {
-                    allPlayerData = new PlayerData[PP_MAX_PLAYERS];
-                }
-            }
-        }
-
-        int fighterCount;
-        fighterCount = g_ftManager->getEntryCount();
-        u8 idx = 0;
-        for (idx = 0; idx < fighterCount; idx++) {
-            gatherData(idx);
-        }
-
-        if (!punchMenu.visible) {
-            for (idx = 0; idx < fighterCount; idx++) {
-                if (allPlayerData[idx].showFighterState) {
-                    printFighterState(allPlayerData[idx]);
-                    break;
-                }
-            }
-        }
-
-
-        for (idx = 0; idx < fighterCount; idx++) {
-            resolveAttackTarget(idx);
-        }
-
-        for (idx = 0; idx < fighterCount; idx++) {
-            checkAttackTargetActionable(idx);
-        }
-
-        if (g_ftManager->getEntryCount() > 0) {
-            if (initialized) {
-                punchMenu.handleInput();
-                punchMenu.render(printer, strManipBuffer, PP_STR_MANIP_SIZE);
-            } else if (needsInitializing()) {
-                initialized = true;
-                punchMenu.init();
-
-                PadStatus pad;
-                pad.btns.bits = (
-                    g_padStatus[0].btns.bits 
-                    | g_padStatus[1].btns.bits 
-                    | g_padStatus[2].btns.bits 
-                    | g_padStatus[3].btns.bits
-                );
-
-                /* If it's a VS Mode, only show if L/R are held. In training mode, 
-                 * auto-open the menu UNLESS L/R are held. 
-                 */
-                if ((sceneType == VS) == (pad.btns.L == true || pad.btns.R == true)) {
-                    punchMenu.toggle();
-                }
-            }
-        }
-
-        drawAllPopups();
-
-        for (idx = 0; idx < fighterCount; idx++) {
-            processOverlays(allPlayerData[idx]);
-        }
-
-        g_watermark.process();
-
-        for (idx = 0; idx < fighterCount; idx++) {
-            /*
-             * The location of this determines whether event handlers are considered on the
-             * same frame or a previous frame. If this is at the beginning, it means that the
-             * event handlers are considered as part of the previous frame, but they have full
-             * access to that frame's gathered data. 
-             * 
-             * Doing this at the END means that the event handlers can modify the *current* frame but
-             * they have to access the previous frame's data for more accurate calculations. This is more
-             * accurate anyway, given that our update hook currently is placed at the very end of
-             * the game's update loop.
-             *
-             */
-            allPlayerData[idx].prepareNextFrame();
-        }
+        updateBattleScene();
     } else { // end if we're a relevant scene.
-        if (initialized) {
-            initialized = false;
+        if (battleSceneInitialized) {
+            battleSceneInitialized = false;
             punchMenu.cleanup();
 
             delete[] allPlayerData;
@@ -245,122 +91,171 @@ void updatePreFrame() {
     }
 
     renderables.renderAll();
-    frameCounter++;
     startNormalDraw();
 }
 
-void debugWorkModule(const Fighter& fighter) {
-    u32 i;
-
-    soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
-    soGeneralWorkSimple& laVars = *getWorkVars(fighter, LA_VARS);
-    int* raBasics = raVars.m_intWorks;
-    float* raFloats = raVars.m_floatWorks;
-    int* laBasics = laVars.m_intWorks;
-    float* laFloats = laVars.m_floatWorks;
-
-    for(i = 0; i < raVars.m_intWorkSize; i++) {
-        if (raBasics[i] != 0 && raBasics[i] != -1){
-            OSReport("\tRABasic #%d: %d \n", i, raBasics[i]);
-        }
-    }
-
-    for (i = 0; i < raVars.m_floatWorkSize; i++) {
-        if (raFloats[i] != 0 && raFloats[i] != -1) {
-            OSReport("\tRAFloat #%d: %0.2f\n", i, raFloats[i]);
-        }
-    }
-
-    for(i = 0; i < laVars.m_intWorkSize; i++) {
-        if (laBasics[i] != 0 && laBasics[i] != -1) {
-            OSReport("\tLABasic #%d: %d \n", i, laBasics[i]);
-        }
-    }
-
-    for (i = 0; i < laVars.m_floatWorkSize; i++) {
-        if (laFloats[i] != 0 && laFloats[i] != -1) {
-            OSReport("\tLAFloat #%d: %0.2f\n", i, laFloats[i]);
-        }
-    }
-
-    return;
-}
-
-
-enum GatherDataErrors {
-    NO_FT_ENTRY,
-    NO_FIGHTER,
-    HIGH_SLOT,
-    INVALID_SLOT
-};
-void gatherData(u8 playerEntryIdx) {
-    if (playerEntryIdx > 3) {
-        OSReport("Asked to gather data for invalid player entry index %d\n", playerEntryIdx);
-        return;
-    }
-
+bool initializePlayer(u8 playerEntryIdx) {
     int entryId = g_ftManager->getEntryIdFromIndex(playerEntryIdx);
     ftEntry* entry = g_ftEntryManager->getEntity(entryId);
     Fighter* fighter = g_ftManager->getFighter(entryId, 0);
     if (entry == NULL) {
         OSReport(g_strTypedError, "gatherData", NO_FT_ENTRY);
-        return;
+        return false;
     }
     if (fighter == NULL) {
         OSReport(g_strTypedError, "gatherData", NO_FIGHTER);
-        return;
+        return false;
     }
 
-    /* 
-     * This roundabout with the slot numbers is because the order the players are loaded in isn't always
-     * the same as which "slot" holds their % and stock icons and it could be wrong otherwise.
-     */
+    /*
+    * This roundabout with the slot numbers is because the order the players are loaded in isn't always
+    * the same as which "slot" holds their % and stock icons and it could be wrong otherwise.
+    */
     if (entry->m_slotIndex >= g_ftManager->m_slotManager->m_slotCount) {
         OSReport(g_strTypedError, "gatherData", INVALID_SLOT);
     }
     int playerNumber = g_ftManager->m_slotManager->m_slots[entry->m_slotIndex].m_slotNo;
-    if (playerNumber > 3) {
-        OSReport(g_strTypedError, "gatherData", HIGH_SLOT);
-        return;
-    }
     PlayerData& playerData = allPlayerData[playerNumber];
 
-    if (needsInitializing()) {
-        int opType = g_ftManager->getFighterOperationType(entryId);
-        playerData.charId = (ftKind)(fighter->getFtKind());
-        playerData.taskId = fighter->m_taskId;
-        int muCharKind = muMenu::exchangeGmCharacterKind2MuStockchkind(entry->m_characterKind);
-        playerData.fighterName = muMenu::exchangeMuStockchkind2MuCharName(muCharKind);
-        playerData.playerNumber = playerNumber;
-
-        OSReport("Initializing P%d: %s\n", playerNumber, playerData.fighterName);
-
-        AnimCmdWatcher* animCmdEventHandler = new AnimCmdWatcher(&allPlayerData[playerNumber], fighter);
-        animCmdEventHandler->registerWith(fighter);
-        allPlayerData[playerNumber].animCmdWatcher = animCmdEventHandler;
-        StatusChangeWatcher* statusChangeWatcher = new StatusChangeWatcher(&allPlayerData[playerNumber]);
-        statusChangeWatcher->registerWith(fighter);
-        allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
-
-        DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
-        if (opType == 0) { // Player is a human
-            allPlayerData[playerNumber].showOnShieldAdvantage = true;
-            allPlayerData[playerNumber].showOnHitAdvantage = false;
-
-            if (getScene() == TRAINING_MODE_MMS) {
-                allPlayerData[playerNumber].enableLedgeTechFramesOnLedgePopup = false;
-                allPlayerData[playerNumber].enableLedgeTechGalintPopup = true;
-                allPlayerData[playerNumber].enableLedgeTechFrameDisplay = true;
-            }
-        };
-        playerData.prepareNextFrame();
+    if (playerNumber > 3) {
+        OSReport(g_strTypedError, "gatherData", HIGH_SLOT);
+        return false;
     }
 
+    int opType = g_ftManager->getFighterOperationType(entryId);
+    playerData.charId = (ftKind)(fighter->getFtKind());
+    playerData.taskId = fighter->m_taskId;
+    playerData.entryId = entryId;
+    int muCharKind = muMenu::exchangeGmCharacterKind2MuStockchkind(entry->m_characterKind);
+    playerData.fighterName = muMenu::exchangeMuStockchkind2MuCharName(muCharKind);
+    playerData.playerNumber = playerNumber;
+
+    OSReport("Initializing P%d: %s\n", playerNumber, playerData.fighterName);
+
+    AnimCmdWatcher* animCmdEventHandler = new AnimCmdWatcher(&allPlayerData[playerNumber], fighter);
+    animCmdEventHandler->registerWith(fighter);
+    allPlayerData[playerNumber].animCmdWatcher = animCmdEventHandler;
+    StatusChangeWatcher* statusChangeWatcher = new StatusChangeWatcher(&allPlayerData[playerNumber]);
+    statusChangeWatcher->registerWith(fighter);
+    allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
+
+    DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
+    if (opType == 0) { // Player is a human
+        allPlayerData[playerNumber].showOnShieldAdvantage = true;
+        allPlayerData[playerNumber].showOnHitAdvantage = false;
+
+        if (getScene() == TRAINING_MODE_MMS) {
+            allPlayerData[playerNumber].enableLedgeTechFramesOnLedgePopup = false;
+            allPlayerData[playerNumber].enableLedgeTechGalintPopup = true;
+            allPlayerData[playerNumber].enableLedgeTechFrameDisplay = true;
+        }
+    };
+    playerData.prepareNextFrame();
+
+    return true;
+}
+
+void updateBattleScene() {
+    u8 idx = 0;
+    if (!battleSceneInitialized) {
+        if (!battleSceneNeedsInitializing()) {
+            DEBUG_INIT("Bailing out to start early\n");
+            startNormalDraw();
+            return;
+        } else {
+            // Don't let the frame counter count up forever.
+            // In one game it is highly unlikely to overflow a u32.
+            // There are ~200k frames in an hour, and a u32's range is
+            // over 4 billion. We do this here instead of at the end with the
+            // punch menu because the punch menu wants to be setup with gathered data,
+            // whereas the framecounter wants to be set before anything happens.
+            frameCounter = 0;
+            menuFrameCounter = 0;
+
+            if (allPlayerData == NULL) {
+                allPlayerData = new PlayerData[PP_MAX_PLAYERS];
+            }
+
+            for (idx = 0; idx < g_ftManager->getEntryCount(); idx++) {
+                bool didInitializePlayer = initializePlayer(idx);
+                if (!didInitializePlayer) {
+                    OSReport("Failed to initialize player %d. Nothing will work.\n");
+                    return;
+                }
+            }
+
+            punchMenu.init();
+            battleSceneInitialized = true;
+        }
+    }
+
+    if (!battleSceneInitialized) { return; }
+
+    int fighterCount;
+    fighterCount = g_ftManager->getEntryCount();
+
+    /* Data gathering */
+    for (idx = 0; idx < fighterCount; idx++) {
+        gatherData(allPlayerData[idx]);
+    }
+
+    for (idx = 0; idx < fighterCount; idx++) {
+        resolveAttackTarget(allPlayerData[idx]);
+    }
+
+    for (idx = 0; idx < fighterCount; idx++) {
+        checkAttackTargetActionable(allPlayerData[idx]);
+    }
+
+    /* Drawing Section */
+    if (punchMenu.visible) {
+        punchMenu.render(printer, strManipBuffer, PP_STR_MANIP_SIZE);
+    } else {
+        drawAllPopups();
+
+        for (idx = 0; idx < fighterCount; idx++) {
+            processOverlays(allPlayerData[idx]);
+        }
+
+        for (idx = 0; idx < fighterCount; idx++) {
+            if (allPlayerData[idx].showFighterState) {
+                allPlayerData[idx].printFighterState();
+                break;
+            }
+        }
+    }
+
+    menuFrameCounter += 1;
+    g_watermark.process();
+    punchMenu.handleInput();
+
+    /* Clean up and prepare for the next frame. */
+    for (idx = 0; idx < fighterCount; idx++) {
+            /*
+                * The location of this determines whether event handlers are considered on the
+                * same frame or a previous frame. If this is at the beginning, it means that the
+                * event handlers are considered as part of the previous frame, but they have full
+                * access to that frame's gathered data. 
+                * 
+                * Doing this at the END means that the event handlers can modify the *current* frame but
+                * they have to access the previous frame's data for more accurate calculations. This is more
+                * accurate anyway, given that our update hook currently is placed at the very end of
+                * the game's update loop.
+                *
+                */
+            allPlayerData[idx].prepareNextFrame();
+        }
+
+        frameCounter += 1;
+}
+
+void gatherData(PlayerData& playerData) {
     playerData.preFrame();
+
+    Fighter* fighter = g_ftManager->getFighter(playerData.entryId, 0);
 
     PlayerDataOnFrame& currentData = *playerData.current;
     PlayerDataOnFrame& prevData = *playerData.current;
-    playerData.entryId = entryId;
 
     soModuleAccesser& modules = *fighter->m_moduleAccesser;
 
@@ -369,6 +264,12 @@ void gatherData(u8 playerEntryIdx) {
     soMotionModuleImpl* motionModule = dynamic_cast<soMotionModuleImpl*>(modules.getMotionModule());
     ftCancelModule* cancelModule = reinterpret_cast<ftCancelModule*>(fighter->getCancelModule());
     soCollisionHitModuleImpl* collisionHitModule = dynamic_cast<soCollisionHitModuleImpl*>(modules.getCollisionHitModule());
+    soControllerImpl* controller = dynamic_cast<soControllerImpl*>(modules.getControllerModule()->getController());
+
+
+    if (!(controller == NULL || controller == (soControllerImpl*)0xCCCCCCCC)) {
+        playerData.current->recordControllerStatus(*controller);
+    }
 
     DEBUG_FIGHTERS(
         "Player: %d\n"
@@ -488,7 +389,7 @@ void gatherData(u8 playerEntryIdx) {
         playerData.current->canCancel = playerData.current->canCancel || cancelModule->isEnableCancel();
     }
 
-    if (playerData.enableLedgeTechFrameDisplay || playerData.enableLedgeTechFramesOnLedgePopup || playerData.enableLedgeTechGalintPopup) {
+    if (LedgeTechWatcher::isEnabled(playerData)) {
         if (playerData.ledgeTechWatcher == NULL) {
             playerData.initLedgeTechWatcher(*fighter);
         }
@@ -496,15 +397,14 @@ void gatherData(u8 playerEntryIdx) {
     }
 }
 
-void resolveAttackTarget(u8 playerIdx) {
-    PlayerData& player = allPlayerData[playerIdx];
+void resolveAttackTarget(PlayerData& player) {
     // False most of the time, so this isn't as slow as it looks. If either of the
     // "isAttackingBlah" flags are true, this already passed so we skip both for speed
     // and so that we don't get into a situation where a target thinks he's being attacked
     // but the player hit something else and moved on.
     if (!(player.isAttackingFighter || player.isAttackingShield)) {
         for (char otherIdx = 0; otherIdx < PP_MAX_PLAYERS; otherIdx++) {
-            if (playerIdx == otherIdx) {
+            if (player.playerNumber == otherIdx) {
                 continue;
             }
 
@@ -531,8 +431,7 @@ void resolveAttackTarget(u8 playerIdx) {
     }
 }
 
-void checkAttackTargetActionable(u8 playerNum) {
-    PlayerData& player = allPlayerData[playerNum];
+void checkAttackTargetActionable(PlayerData& player) {
 
     // Player is attacking someone. The second check guards against frame 1 moves.
     if (player.attackTarget != NULL && player.hasStartedAttack()){

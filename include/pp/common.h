@@ -1,10 +1,12 @@
 #pragma once
 
 #include "pp/entry.h"
+#include <StaticAssert.h>
 #include <types.h>
 #include <GX/GXTypes.h>
 #include <nw4r/ut/color.h>
 #include <gm/gm_global.h>
+#include <OS/OSError.h>
 
 /* Static value defines */
 
@@ -40,6 +42,8 @@
 
 #define RA_BIT_ENABLE_ACTION_TRANSITION 0x10
 #define RA_BIT_ENABLE_LANDING_LAG 0x1E
+#define PP_M_PI_2		1.57079632679489661923
+#define PP_M_PI_4		0.78539816339744830962
 
 // Re-using brawl-defined strings to save memory
 extern "C" const char* g_strError;          // "ERROR STRING: %s\n"
@@ -76,6 +80,10 @@ namespace PP {
             this->x = other.x;
             this->y = other.y;
         }
+
+        float degrees() const;
+        float quadrantDegrees() const;
+        float radians() const;
 
         float x;
         float y;
@@ -125,10 +133,15 @@ namespace PP {
     };
 
     extern u32 frameCounter;
+    extern u32 menuFrameCounter;
     extern char strManipBuffer[PP_STR_MANIP_SIZE];
 
     int max(int a, int b);
     float fmax(float a, float b);
+    float fabs(float f); 
+
+    bool startsWith(const char* testStr, const char* prefix);
+    size_t printBinaryString(char* buffer, int byte);
     SCENE_TYPE getScene();
 
     #ifdef PP_DEBUG_ALL
@@ -143,6 +156,7 @@ namespace PP {
     #define PP_DEBUG_TEXT_PRINTER
     #define PP_DEBUG_LEDGETECH
     #endif
+    #define PP_DEBUG_LEDGETECH
 
     // #define PP_MENU_DISPLAY_DEBUG
 
