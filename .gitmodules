@@ -1,3 +1,4 @@
 [submodule "lib/BrawlHeaders"]
 	path = lib/BrawlHeaders
 	url = git@github.com:WispSSBM/BrawlHeaders.git
+	branch = main
