@@ -11,6 +11,7 @@
 #include "pp/ledge_tech.h"
 #include "pp/graphics/text_printer.h"
 #include "pp/ui.h"
+#include "pp/main.h"
 
 namespace PP {
 
@@ -50,9 +51,6 @@ PlayerData::PlayerData() {
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
     ledgeTechWatcher = NULL;
-
-    maxPopupLimit = 3;
-    maxLedgedashVizFrames = 40;
 
     charId = Fighter_Mario;
     taskId = -1;
@@ -102,7 +100,7 @@ void PlayerData::setAction(u16 newAction) {
 #pragma region display
 
 int PlayerData::debugStr(char* buffer) const {
-    PlayerDataOnFrame& f = *(this->current);
+    PlayerDataOnFrame& f = PP_IS_PAUSED ? *(this->prev) : *(this->current);
     char raBits[50];
     this->writeLowRABoolStr(raBits);
 
@@ -122,7 +120,8 @@ int PlayerData::debugStr(char* buffer) const {
 }
 
 int PlayerData::writeLowRABoolStr(char* buffer) const {
-    return printBinaryString(buffer, this->current->lowRABits);
+    PlayerDataOnFrame&f = PP_IS_PAUSED ? *(this->prev) : *(this->current);
+    return printBinaryString(buffer, f.lowRABits);
 }
 
 void PlayerData::printFighterState() const {
@@ -145,7 +144,7 @@ void PlayerData::printFighterState() const {
 
 Popup* PlayerData::createPopup(const char* fmt, ...)
 {
-    if (playerPopups[playerNumber].length >= this->maxPopupLimit) {
+    if (playerPopups[playerNumber].length >= GlobalSettings::maxOsdLimit) {
         playerPopups->removeEnd();
     }
 

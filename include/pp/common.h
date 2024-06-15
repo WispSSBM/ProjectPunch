@@ -1,6 +1,8 @@
 #pragma once
 
 #include "pp/entry.h"
+#include "pp/global_settings.h"
+
 #include <StaticAssert.h>
 #include <types.h>
 #include <GX/GXTypes.h>
@@ -155,8 +157,8 @@ namespace PP {
     #define PP_DEBUG_MEM
     #define PP_DEBUG_TEXT_PRINTER
     #define PP_DEBUG_LEDGETECH
+    #define PP_DEBUG_INPUT
     #endif
-    #define PP_DEBUG_LEDGETECH
 
     // #define PP_MENU_DISPLAY_DEBUG
 
@@ -215,5 +217,10 @@ namespace PP {
     #define DEBUG_LEDGETECH(...)
     #endif
 
+    #ifdef PP_DEBUG_INPUT
+    #define DEBUT_INPUT(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_INPUT(...)
+    #endif
 
 }

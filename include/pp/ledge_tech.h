@@ -93,6 +93,7 @@ class LedgeTechWatcher: public StatusChangeWatcher {
             _visualDurationFrames = LEDGEDASH_DEFAULT_DISPLAY_DURATION;
             _wasReset = true;
             opacity = 0xBB;
+            resetState();
         };
 
         void didCatchCliff(int fighterFrame, soModuleAccesser& modules);
@@ -116,18 +117,13 @@ class LedgeTechWatcher: public StatusChangeWatcher {
 
         virtual void notifyEventChangeStatus(int statusKind, int prevStatusKind, soStatusData* statusData, soModuleAccesser* moduleAccesser);
         virtual void process(Fighter& fighter);
-        static bool isEnabled(const PlayerData& playerData) { 
-            return playerData.enableLedgeTechFrameDisplay 
-                    || playerData.enableLedgeTechGalintPopup 
-                    || playerData.enableLedgeTechFramesOnLedgePopup
-                    || playerData.enableLedgeTechAirdodgeAngle;
-        };
-
+        static bool isEnabled(const PlayerData& playerData);
         u8 opacity;
     private:
         bool _wasReset;
         bool _isOnLedge;
         bool _didShowLedgeDash;
+        bool _showAirdodgeNextUpdate;
 
         int* _currentFrameCounter;
         FrameType _currentFrameType;

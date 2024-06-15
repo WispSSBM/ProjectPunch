@@ -47,6 +47,8 @@ public:
 
 // This is the direct memory that the controller polling thread writes to.
 // It may only work for GCC.
-extern volatile const PadStatus g_padStatus[4];
+extern volatile PadStatus g_padStatus[4];
+
+PadButtons btnsFromAllPads();
 
 }} // namespace

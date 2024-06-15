@@ -75,9 +75,6 @@ struct PlayerData {
     StatusChangeWatcher* statusChangeWatcher;
     LedgeTechWatcher* ledgeTechWatcher;
 
-    int maxPopupLimit;
-    int maxLedgedashVizFrames;
-
     /* aliases for fields on Current*/
     u16 action() const;
     const char* actionStr() const;

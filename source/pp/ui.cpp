@@ -10,6 +10,7 @@
 #include "pp/menu/menu.h"
 #include "pp/menu/options/bool_option.h"
 #include "pp/menu/options/int_option.h"
+#include "pp/menu/options/choice_option.h"
 #include "pp/menu/options/float_option.h"
 #include "pp/menu/options/label_option.h"
 #include "pp/menu/options/spacer_option.h"
@@ -42,11 +43,25 @@ void PpunchMenu::init() {
     ctrlInfoPage.addOption(new LabelOption("DPad/Stick U/D", "Up/Down"));
     ctrlInfoPage.addOption(new LabelOption("DPad/Stick", "Adjust selected value"));
     ctrlInfoPage.addOption(new LabelOption("Start", "Exit the Menu"));
-    ctrlInfoPage.addOption(new LabelOption("Z", "Deactivate the Menu (still visible)"));
     ctrlInfoPage.addOption(new LabelOption("X (hold)", "Turbo adjust values"));
     ctrlInfoPage.addOption(new LabelOption("Y (hold)", "Adjust values by 5x"));
     ctrlInfoPage.addOption(new LabelOption("L/R (hold on startup)", "Disable menu autoopen."));
     addPage(&ctrlInfoPage);
+
+    Page* globalSettingsPage = new Page(this);
+    snprintf(globalSettingsPage->title, 256, "Global Settings");
+    globalSettingsPage->addOption(new IntOption<int>("Max On-Screen Displays", GlobalSettings::maxOsdLimit, 1, 10, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", GlobalSettings::maxLedgedashVizFrames, 15, 64, true, false));
+    globalSettingsPage->addOption(new BoolOption("Enable Frame Advance", GlobalSettings::enableFrameAdvance, true));
+    globalSettingsPage->addOption(new ChoiceOption(
+        "Frame Advance Button", 
+        frameAdvanceButtonOptions, 
+        *((int*)&GlobalSettings::frameAdvanceButton),
+        PP_FAB_OPT_COUNT
+    ));
+    globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", GlobalSettings::frameAdvanceRepeatDelayFrames, 15, 300, true, false));
+    this->addPage(globalSettingsPage);
+    
 
     u32 fighters = g_ftManager->getEntryCount();
     DEBUG_MENU("Detected %d fighters.\n", fighters);
@@ -56,11 +71,9 @@ void PpunchMenu::init() {
         const char* ftName = player.fighterName;
         DEBUG_MENU("Adding page for P%d: %s @ 0x%x\n", player.playerNumber, ftName, (void*)&player);
         snprintf(newPage.title, 256, "P%d = %s", i+1, player.fighterName);
-        newPage.addOption(new IntOption<int>("Max On-Screen Displays", player.maxPopupLimit, 1, 10, true, false));
         newPage.addOption(new BoolOption("On-Shield Adv OSD", player.showOnShieldAdvantage));
         newPage.addOption(new BoolOption("On-Hit Adv OSD", player.showOnHitAdvantage));
         newPage.addOption(new BoolOption("Ledgedash Visualization", player.enableLedgeTechFrameDisplay));
-        newPage.addOption(new IntOption<int>("Max Ledgedash Viz Frames", player.maxLedgedashVizFrames, 15, 64, true, false));
         newPage.addOption(new BoolOption("GALINT OSD", player.enableLedgeTechGalintPopup));
         newPage.addOption(new BoolOption("Frames-on-ledge OSD", player.enableLedgeTechFramesOnLedgePopup));
         newPage.addOption(new BoolOption("Ledgedash Angle OSD", player.enableLedgeTechAirdodgeAngle));
@@ -225,7 +238,6 @@ void PpunchMenu::handleInput() {
 
         if (buttons.A) { menu.select();   break; }
         if (buttons.B) { menu.deselect(); break; }
-        if (buttons.Z) { menu.paused = false; break; }
         if (buttons.Start) { menu.toggle(); break; }
 
         if      (buttons.UpDPad    || stickY > 0) menu.up();

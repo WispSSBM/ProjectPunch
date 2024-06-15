@@ -35,6 +35,7 @@ void PlayerDataOnFrame::recordControllerStatus(const soControllerImpl& controlle
     this->controllerBtnPressed.m_bits = controller.m_trigger;
     this->controllerBtnReleased.m_bits = controller.m_release;
     this->stick = Coord2DF(controller.m_mainStickX, controller.m_mainStickY);
+    // OSReport("Saved controller stick coords on f%d as (%0.2f,%0.2f)\n", frameCounter, this->stick.x, this->stick.y);
     this->substick = Coord2DF(controller.m_subStickX, controller.m_subStickY);
 }
 

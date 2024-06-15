@@ -30,7 +30,6 @@ using namespace PP::Collections;
 namespace PP {
 bool battleSceneInitialized = false;
 
-
 /*
  * This is quite brittle. This gets called without saving regs, and if too much is done
  * in this function crashes will occur.
@@ -38,7 +37,7 @@ bool battleSceneInitialized = false;
 void checkMenuPaused(char* gfTaskSchedulerInst) {
     //OSReport("Visible: %s, paused: %s\n", visible ? "T" : "F", paused ? "T" : "F");
     //OSReport("Trying to read gfTaskSchedulerInst @ 0x%0X\n", gfTaskSchedulerInst);
-    if (punchMenu.paused && punchMenu.visible) { gfTaskSchedulerInst[0xB] |= 0x8; }
+    if (PP_IS_PAUSED) { gfTaskSchedulerInst[0xB] |= 0x8; }
     else { gfTaskSchedulerInst[0xB] &= ~0x8; }
 }
 
@@ -79,7 +78,13 @@ void updatePreFrame() {
 
     // Do nothing if not in a game.
     if (sceneType == VS || sceneType == TRAINING_MODE_MMS) {
-        updateBattleScene();
+        if (!battleSceneInitialized) {
+            initializeBattleScene();
+        }
+
+        if (battleSceneInitialized) {
+            updateBattleScene();
+        }
     } else { // end if we're a relevant scene.
         if (battleSceneInitialized) {
             battleSceneInitialized = false;
@@ -155,45 +160,50 @@ bool initializePlayer(u8 playerEntryIdx) {
     return true;
 }
 
+void initializeBattleScene() {
+    u8 idx = 0;
+    if (!battleSceneNeedsInitializing()) {
+        DEBUG_INIT("Bailing out to start early\n");
+
+        // The punch menu isn't initialized at this point so we don't have to worry about it.
+        g_frameAdvance.paused = false;
+        startNormalDraw();
+        return;
+    } else {
+        // Don't let the frame counter count up forever.
+        // In one game it is highly unlikely to overflow a u32.
+        // There are ~200k frames in an hour, and a u32's range is
+        // over 4 billion. We do this here instead of at the end with the
+        // punch menu because the punch menu wants to be setup with gathered data,
+        // whereas the framecounter wants to be set before anything happens.
+        frameCounter = 0;
+        menuFrameCounter = 0;
+
+        if (allPlayerData == NULL) {
+            allPlayerData = new PlayerData[PP_MAX_PLAYERS];
+        }
+
+        for (idx = 0; idx < g_ftManager->getEntryCount(); idx++) {
+            bool didInitializePlayer = initializePlayer(idx);
+            if (!didInitializePlayer) {
+                OSReport("Failed to initialize player %d. Nothing will work.\n");
+                return;
+            }
+        }
+
+        punchMenu.init();
+        battleSceneInitialized = true;
+    }
+}
+
 void updateBattleScene() {
     u8 idx = 0;
-    if (!battleSceneInitialized) {
-        if (!battleSceneNeedsInitializing()) {
-            DEBUG_INIT("Bailing out to start early\n");
-            startNormalDraw();
-            return;
-        } else {
-            // Don't let the frame counter count up forever.
-            // In one game it is highly unlikely to overflow a u32.
-            // There are ~200k frames in an hour, and a u32's range is
-            // over 4 billion. We do this here instead of at the end with the
-            // punch menu because the punch menu wants to be setup with gathered data,
-            // whereas the framecounter wants to be set before anything happens.
-            frameCounter = 0;
-            menuFrameCounter = 0;
-
-            if (allPlayerData == NULL) {
-                allPlayerData = new PlayerData[PP_MAX_PLAYERS];
-            }
-
-            for (idx = 0; idx < g_ftManager->getEntryCount(); idx++) {
-                bool didInitializePlayer = initializePlayer(idx);
-                if (!didInitializePlayer) {
-                    OSReport("Failed to initialize player %d. Nothing will work.\n");
-                    return;
-                }
-            }
-
-            punchMenu.init();
-            battleSceneInitialized = true;
-        }
-    }
-
     if (!battleSceneInitialized) { return; }
 
-    int fighterCount;
-    fighterCount = g_ftManager->getEntryCount();
+    punchMenu.handleInput();
+    g_frameAdvance.process();
 
+    int fighterCount = g_ftManager->getEntryCount();
     /* Data gathering */
     for (idx = 0; idx < fighterCount; idx++) {
         gatherData(allPlayerData[idx]);
@@ -227,26 +237,27 @@ void updateBattleScene() {
 
     menuFrameCounter += 1;
     g_watermark.process();
-    punchMenu.handleInput();
+
+    if (PP_IS_PAUSED) { return; }
 
     /* Clean up and prepare for the next frame. */
     for (idx = 0; idx < fighterCount; idx++) {
-            /*
-                * The location of this determines whether event handlers are considered on the
-                * same frame or a previous frame. If this is at the beginning, it means that the
-                * event handlers are considered as part of the previous frame, but they have full
-                * access to that frame's gathered data. 
-                * 
-                * Doing this at the END means that the event handlers can modify the *current* frame but
-                * they have to access the previous frame's data for more accurate calculations. This is more
-                * accurate anyway, given that our update hook currently is placed at the very end of
-                * the game's update loop.
-                *
-                */
-            allPlayerData[idx].prepareNextFrame();
-        }
+        /*
+         * The location of this determines whether event handlers are considered on the
+         * same frame or a previous frame. If this is at the beginning, it means that the
+         * event handlers are considered as part of the previous frame, but they have full
+         * access to that frame's gathered data.
+         *
+         * Doing this at the END means that the event handlers can modify the *current* frame but
+         * they have to access the previous frame's data for more accurate calculations. This is more
+         * accurate anyway, given that our update hook currently is placed at the very end of
+         * the game's update loop.
+         *
+         */
+        allPlayerData[idx].prepareNextFrame();
+    }
 
-        frameCounter += 1;
+    frameCounter += 1;
 }
 
 void gatherData(PlayerData& playerData) {

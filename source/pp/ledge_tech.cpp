@@ -2,6 +2,7 @@
 
 #include "pp/common.h"
 #include "pp/actions.h"
+#include "pp/main.h"
 #include "pp/graphics/draw.h"
 #include "pp/graphics/drawable.h"
 #include "pp/graphics/text_printer.h"
@@ -24,6 +25,13 @@ const char* g_frameTypeLabels[] = {
     "Galint",
     "Other"
 };
+
+bool PP::LedgeTechWatcher::isEnabled(const PlayerData& playerData) { 
+    return playerData.enableLedgeTechFrameDisplay
+        || playerData.enableLedgeTechGalintPopup
+        || playerData.enableLedgeTechFramesOnLedgePopup
+        || playerData.enableLedgeTechAirdodgeAngle;
+}
 
 /* 
  * In all of these watchers, it's important to note that the current frame is
@@ -63,7 +71,7 @@ void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame, soModuleAccesser& mod
         actionableLedgeFrames -= 2;
     }
 
-    if (actionableLedgeFrames > playerData->maxLedgedashVizFrames) {
+    if (actionableLedgeFrames > GlobalSettings::maxLedgedashVizFrames) {
         return; // This will cause overflows, but shouldn't be able to happen.
     }
 
@@ -100,9 +108,8 @@ void PP::LedgeTechWatcher::didStartFall(int fighterFrame, soModuleAccesser& modu
 
 void PP::LedgeTechWatcher::didStartAirdodge(int fighterFrame, soModuleAccesser& modules) 
 {
-    if (playerData->enableLedgeTechAirdodgeAngle) {
-        playerData->createPopup("Airdodge: %0.0fdeg\n", playerData->prev->stick.quadrantDegrees());
-    }
+    _showAirdodgeNextUpdate = true;
+    DEBUG_LEDGETECH("LEDGETECH f%d: Started airdodge on frame %d\n", fighterFrame, fighterFrame - _cliffWaitStartFrame);
 }
 
 void PP::LedgeTechWatcher::didFinishLedgeDash(int fighterFrame, soModuleAccesser& modules)
@@ -147,8 +154,8 @@ void PP::LedgeTechWatcher::notifyEventChangeStatus(int statusKind, int prevStatu
     } 
 
     if (_wasReset) { return; }
-
-    else if (prevStatusKind == ACTION_CLIFFWAIT) {
+    
+    if (prevStatusKind == ACTION_CLIFFWAIT) {
         didLeaveCliff(frameCounter, *moduleAccesser, statusKind);
 
         if (statusKind == ACTION_CLIFFESCAPE) {
@@ -212,7 +219,7 @@ void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
 }
 
 bool PP::LedgeTechWatcher::shouldStopWatching() {
-    return _totalFrames >= playerData->maxLedgedashVizFrames || playerData->current->action == ACTION_UNLOADED;
+    return _totalFrames >= GlobalSettings::maxLedgedashVizFrames || playerData->current->action == ACTION_UNLOADED;
 }
 
 void PP::LedgeTechWatcher::resetState() {
@@ -231,6 +238,7 @@ void PP::LedgeTechWatcher::resetState() {
     _specialLandFrames = 0;
     _otherFrames = 0;
 
+    _showAirdodgeNextUpdate = false;
     _currentFrameCounter = &_cliffWaitFrames;
     _currentFrameType = LEDGE_FT_CLIFFWAIT;
     _didShowLedgeDash = false;
@@ -309,14 +317,23 @@ namespace PP {
 
 void PP::LedgeTechWatcher::process(Fighter& fighter)
 {
-    if ( !_wasReset && _cliffWaitStartFrame != -1) {
+    if ( !_wasReset && _cliffWaitStartFrame != -1 && !PP_IS_PAUSED) {
         int fighterFrame = frameCounter;
         DEBUG_LEDGETECH("LEDGETECH f%d: action: 0x%X XLU: %d \n", frameCounter, playerData->current->action, playerData->current->ledgeIntan);
 
         _totalFrames = (fighterFrame - _cliffWaitStartFrame) + 1;
-        if (_totalFramesPrev == -1) {
+        if (_totalFramesPrev < 0) {
             _totalFramesPrev = _totalFrames - 1;
         }
+
+        if (_showAirdodgeNextUpdate) {
+            _showAirdodgeNextUpdate = false;
+
+            if (playerData->enableLedgeTechAirdodgeAngle) {
+                playerData->createPopup("Airdodge: %0.0fdeg\n", playerData->current->stick.quadrantDegrees());
+            }
+        }
+
         if (shouldStopWatching()) {
             resetState();
             return;
