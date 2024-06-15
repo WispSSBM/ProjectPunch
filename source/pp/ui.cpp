@@ -51,7 +51,7 @@ void PpunchMenu::init() {
     Page* globalSettingsPage = new Page(this);
     snprintf(globalSettingsPage->title, 256, "Global Settings");
     globalSettingsPage->addOption(new IntOption<int>("Max On-Screen Displays", GlobalSettings::maxOsdLimit, 1, 10, true, false));
-    globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", GlobalSettings::maxLedgedashVizFrames, 15, 64, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", GlobalSettings::maxLedgedashVizFrames, 30, 64, true, false));
     globalSettingsPage->addOption(new BoolOption("Enable Frame Advance", GlobalSettings::enableFrameAdvance, true));
     globalSettingsPage->addOption(new ChoiceOption(
         "Frame Advance Button", 
@@ -59,7 +59,7 @@ void PpunchMenu::init() {
         *((int*)&GlobalSettings::frameAdvanceButton),
         PP_FAB_OPT_COUNT
     ));
-    globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", GlobalSettings::frameAdvanceRepeatDelayFrames, 15, 300, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", GlobalSettings::frameAdvanceRepeatDelayFrames, 5, 60, true, false));
     this->addPage(globalSettingsPage);
     
 

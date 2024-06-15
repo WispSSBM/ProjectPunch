@@ -4,10 +4,10 @@ namespace PP{
 namespace GlobalSettings {
 
 int maxOsdLimit = 3;
-int maxLedgedashVizFrames = 45;
+int maxLedgedashVizFrames = 50;
 bool enableFrameAdvance = false;
 FrameAdvanceButton frameAdvanceButton = FAB_Z;
-int frameAdvanceRepeatDelayFrames = 60;
+int frameAdvanceRepeatDelayFrames = 15;
 
 
 
