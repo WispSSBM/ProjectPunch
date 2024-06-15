@@ -2,7 +2,6 @@
 #include <types.h>
 #include <OS/OSError.h>
 #include <so/event/so_event_observer.h>
-#include <so/status/so_status_event_observer.h>
 
 #include "pp/common.h"
 #include "pp/playerdata.h"

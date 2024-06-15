@@ -369,9 +369,9 @@ void gatherData(PlayerData& playerData) {
         soAnimChr animationData = motionModule->m_mainAnim;
         playerData.current->subaction = motionModule->getKind();
         if (animationData.m_anmChrRes != NULL) {
-            nw4r::g3d::CHR0* animationResource = animationData.m_anmChrRes->m_anmChrFile;
+            nw4r::g3d::ResAnmChr animationResource = animationData.m_anmChrRes->m_anmChrFile;
             // OSReport("Animation Resource: 0x%X\n", animationResource);
-            if (animationResource == NULL) {
+            if (animationResource.ptr() == NULL) {
                 playerData.current->subactionName = NULL;
             } else {
                 playerData.current->subactionFrame = motionModule->getFrame();
