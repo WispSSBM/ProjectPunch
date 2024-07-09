@@ -78,6 +78,12 @@ namespace SyringeCore {
     };
 
     /**
+     * @brief Iterates over all loaded modules and attempts to apply registered hooks
+     *
+     */
+    void applyRelHooks();
+
+    /**
      * @brief Initializes the Syringe core systems.
      * @note This function must be called before running any hooking operations.
      */

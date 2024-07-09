@@ -1,15 +1,15 @@
-224,1,00000200:InitNetwork__7SyringeFv
-224,1,00000328:Subscribe__Q211SyringeCore15ModuleLoadEventFPFP12gfModuleInfo_v
-224,1,00000828:syInlineHook__11SyringeCoreFUlPCv
-224,1,00000830:syInlineHookRel__11SyringeCoreFUlPCvi
-224,1,00000834:sySimpleHook__11SyringeCoreFUlPCv
-224,1,00000840:sySimpleHookRel__11SyringeCoreFUlPCvi
-224,1,0000094c:syReplaceFunc__11SyringeCoreFUlPCvPPv
-224,1,00000954:syReplaceFuncRel__11SyringeCoreFUlPCvPPvi
-224,1,00000c34:EncodeBranch__12SyringeUtilsFUlUlb
-224,1,00000c60:EncodeBranch__12SyringeUtilsFUlUl
-224,1,00000c68:__ct__Q27Syringe7VersionFPCc
-224,1,00000cb4:__lt__7SyringeFRCQ27Syringe7VersionRCQ27Syringe7Version
-224,1,00000d04:__eq__7SyringeFRCQ27Syringe7VersionRCQ27Syringe7Version
-224,1,00000d44:__ne__7SyringeFRCQ27Syringe7VersionRCQ27Syringe7Version
-224,1,00000d84:versionToString__7SyringeFRCQ27Syringe7VersionPc
+224,1,0000046c: InitNetwork__7SyringeFv
+224,1,0000058c: Subscribe__Q211SyringeCore15ModuleLoadEventFPFP12gfModuleInfo_v
+224,1,00000b00: syInlineHook__11SyringeCoreFUlPCv
+224,1,00000b08: syInlineHookRel__11SyringeCoreFUlPCvi
+224,1,00000b0c: sySimpleHook__11SyringeCoreFUlPCv
+224,1,00000b18: sySimpleHookRel__11SyringeCoreFUlPCvi
+224,1,00000c24: syReplaceFunc__11SyringeCoreFUlPCvPPv
+224,1,00000c2c: syReplaceFuncRel__11SyringeCoreFUlPCvPPvi
+224,1,00000f0c: EncodeBranch__12SyringeUtilsFUlUlb
+224,1,00000f38: EncodeBranch__12SyringeUtilsFUlUl
+224,1,00000f40: __ct__Q27Syringe7VersionFPCc
+224,1,00000f8c: __lt__7SyringeFRCQ27Syringe7VersionRCQ27Syringe7Version
+224,1,00000fdc: __eq__7SyringeFRCQ27Syringe7VersionRCQ27Syringe7Version
+224,1,0000101c: __ne__7SyringeFRCQ27Syringe7VersionRCQ27Syringe7Version
+224,1,0000105c: versionToString__7SyringeFRCQ27Syringe7VersionPc

@@ -12,6 +12,7 @@ enum FrameAdvanceButton {
 };
 
 extern const char* frameAdvanceButtonOptions[];
+void gfPadUpdateHook();
 
 class FrameAdvanceModule {
 public:

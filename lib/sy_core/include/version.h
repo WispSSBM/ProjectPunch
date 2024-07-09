@@ -1,6 +1,6 @@
 #pragma once
 
-#define SYRINGE_VERSION "0.5.0"
+#define SYRINGE_VERSION "0.5.1"
 
 namespace Syringe {
     class Version {
