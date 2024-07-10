@@ -10,6 +10,11 @@
 8084B6D8:enableCancelTransitionGroup__14ftCancelModuleImplFi
 8002e5b4:pauseHookReturn__Fv
 
+
+27,1,0005afb8:invisTechsMainHookReturn__2PPFv
+27,1,0012fee8:invisTechsCursorHookReturnNoSkip__2PPFv
+27,1,00130000:invisTechsCursorHookReturnSkip__2PPFv
+
 8048a838:g_strError
 80492f1c:g_strTypedError
 801f3b9c:GXSetTevOp

@@ -5,7 +5,7 @@
 #include "pp/main.h"
 #include "pp/playerdata.h"
 #include "pp/global_settings.h"
-#include "pp/invis_techchase.h"
+#include "pp/invis_techs.h"
 #include "pp/frame_advance.h"
 #include "gf/gf_pad_status.h"
 #include "memory.h"
@@ -29,7 +29,10 @@ void Init() {
     SyringeCore::syInlineHook(0x80017794, (void*)PP::updatePreFrame);
     SyringeCore::syInlineHook(0x8002a258, PP::gfPadUpdateHook);
     SyringeCore::sySimpleHook(0x8002e5b0, pauseHook);
-    // SyringeCore::sySimpleHookRel(0x5afb4, PP::invisTechchaseMainHook, 27);
+    SyringeCore::sySimpleHookRel(0x5afb4, PP::invisTechsMainHook, 27);
+    SyringeCore::sySimpleHookRel(0x12fee4, PP::invisTechsCursorHook, 27);
+    // SyringeCore::sySimpleHookRel(0x12ff78, PP::invisTechsCursorHook, 27);
+    // SyringeCore::sySimpleHookRel(0x12ffD4, PP::invisTechsNameCursorHook, 27);
 }
 
 void Destroy() {}

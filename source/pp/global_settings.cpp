@@ -8,6 +8,7 @@ int maxLedgedashVizFrames = 50;
 bool enableFrameAdvance = false;
 FrameAdvanceButton frameAdvanceButton = FAB_Z;
 int frameAdvanceRepeatDelayFrames = 15;
+bool enableInvisibleTechs = false;
 
 
 

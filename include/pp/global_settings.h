@@ -10,5 +10,6 @@ extern int maxLedgedashVizFrames;
 extern bool enableFrameAdvance;
 extern FrameAdvanceButton frameAdvanceButton;
 extern int frameAdvanceRepeatDelayFrames;
+extern bool enableInvisibleTechs;
 
 }} // namespace PP::GlobalSettings

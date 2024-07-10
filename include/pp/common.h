@@ -111,6 +111,8 @@ namespace PP {
         };
     };
 
+    typedef void (*void_ptr)();
+
     extern Color globalOverlayColor;
 
 
@@ -141,6 +143,9 @@ namespace PP {
     int max(int a, int b);
     float fmax(float a, float b);
     float fabs(float f); 
+
+    inline bool betweenIncl(int a, int b, int c) { return (a <= b && b <= c); }
+    inline bool betweenExcl(int a, int b, int c) { return (a < b && b < c); }
 
     bool startsWith(const char* testStr, const char* prefix);
     size_t printBinaryString(char* buffer, int byte);

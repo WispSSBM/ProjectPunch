@@ -53,6 +53,7 @@ void PpunchMenu::init() {
     globalSettingsPage->addOption(new IntOption<int>("Max On-Screen Displays", GlobalSettings::maxOsdLimit, 1, 10, true, false));
     globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", GlobalSettings::maxLedgedashVizFrames, 30, 64, true, false));
     globalSettingsPage->addOption(new BoolOption("Enable Frame Advance", GlobalSettings::enableFrameAdvance, true));
+    globalSettingsPage->addOption(new BoolOption("Invisible Tech Reaction Trainer", GlobalSettings::enableInvisibleTechs, true));
     globalSettingsPage->addOption(new ChoiceOption(
         "Frame Advance Button", 
         frameAdvanceButtonOptions, 
