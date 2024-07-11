@@ -22,6 +22,10 @@ typedef void (*setActiveStatusPtr)(int*, bool);
 #define SUBACT_TECH_FWD 0xBF
 #define SUBACT_TECH_BACK 0xC0
 
+#define SUBACT_SLIP_STAND 0xE6
+#define SUBACT_SLIP_GETUP_ATK 0xE7
+#define SUBACT_SLIP_ROLL_FWD 0xE8
+#define SUBACT_SLIP_ROLL_BACK 0xE9
 
 namespace PP {
 
@@ -30,23 +34,15 @@ static bool& enableInvisTechs = GlobalSettings::enableInvisibleTechs;
 // defined in EXTRAS.lst
 
 bool isTechAnim(int currentSubaction) {
-    if (currentSubaction < SUBACT_NEUTRAL_GETUP_1) {
+    if ((betweenIncl(SUBACT_NEUTRAL_GETUP_1, currentSubaction, SUBACT_ROLL_BACK_1) || 
+        betweenIncl(SUBACT_NEUTRAL_GETUP_2, currentSubaction, SUBACT_ROLL_BACK_2) ||
+        betweenIncl(SUBACT_TECH_INPLACE, currentSubaction, SUBACT_TECH_BACK) ||
+        betweenIncl(SUBACT_SLIP_STAND, currentSubaction, SUBACT_SLIP_ROLL_BACK))) {
+        return true;
+    } 
+    else {
         return false;
-    } else {
-        if (betweenIncl(SUBACT_GETUP_ATK_1, currentSubaction, SUBACT_ROLL_BACK_1)) {
-            return true;
-        }
-
-        if (betweenIncl(SUBACT_NEUTRAL_GETUP_2, currentSubaction, SUBACT_ROLL_BACK_2)) {
-            return true;
-        }
-
-        if (betweenIncl(SUBACT_TECH_INPLACE, currentSubaction, SUBACT_TECH_BACK)) {
-            return true;
-        }
     }
-
-    return false;
 }
 
 bool isInInvisTechWindow(soMotionModule& motionModule) {
