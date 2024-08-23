@@ -61,6 +61,7 @@ void PpunchMenu::init() {
         PP_FAB_OPT_COUNT
     ));
     globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", GlobalSettings::frameAdvanceRepeatDelayFrames, 5, 60, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Actionable OoShield Minimum", GlobalSettings::shieldActionabilityTolerance, 0, 5, true, false));
     this->addPage(globalSettingsPage);
     
 

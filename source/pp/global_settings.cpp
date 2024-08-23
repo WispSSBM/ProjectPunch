@@ -9,6 +9,7 @@ bool enableFrameAdvance = false;
 FrameAdvanceButton frameAdvanceButton = FAB_Z;
 int frameAdvanceRepeatDelayFrames = 15;
 bool enableInvisibleTechs = false;
+int shieldActionabilityTolerance = 1;
 
 
 

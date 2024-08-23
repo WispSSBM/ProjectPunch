@@ -11,5 +11,6 @@ extern bool enableFrameAdvance;
 extern FrameAdvanceButton frameAdvanceButton;
 extern int frameAdvanceRepeatDelayFrames;
 extern bool enableInvisibleTechs;
+extern int shieldActionabilityTolerance;
 
 }} // namespace PP::GlobalSettings

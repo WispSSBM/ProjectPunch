@@ -177,7 +177,11 @@ bool PlayerData::resolvePlayerActionable() {
     PlayerData& player = *this;
     int currentAction = player.current->action;
     if (player.becameActionableOnFrame != (u32)(-1)) {
-        return true; // already became actionable..
+        if (player.didActionChange && isAttackingAction(current->action)) {
+            player.becameActionableOnFrame = -1;
+        } else {
+            return true; // already became actionable..
+        }
     }
 
     if (current->occupiedActionableState) {
@@ -214,30 +218,38 @@ bool PlayerData::resolvePlayerActionable() {
 const char* strDefActionable = "[f%d] TGT %d now actionable via ";
 bool PlayerData::resolveTargetActionable() {
     PlayerData& target = *this;
-
-    if (target.becameActionableOnFrame != (u32)(-1)) {
-        return true; // already happened.
+    
+    if (target.didActionChange && target.current->action == ACTION_GUARDDAMAGE) {
+        target.becameActionableOnFrame = -1;
+        return false;
     }
 
-    if (target.current->hitstun == 0 && target.current->shieldstun == 0) {
-        OSReport(strDefActionable, frameCounter, target.playerNumber);
-        OSReport("hitstun\n");
-        target.becameActionableOnFrame = frameCounter;
+    if (target.becameActionableOnFrame == -1) {
+        if (target.current->hitstun == 0 && target.current->shieldstun == 0) {
+            OSReport(strDefActionable, frameCounter, target.playerNumber);
+            OSReport("hitstun\n");
+            if (target.becameActionableOnFrame == -1) {
+                target.becameActionableOnFrame = frameCounter;
+            }
+        } else if (target.current->occupiedActionableState) {
+            OSReport(strDefActionable, frameCounter, target.playerNumber);
+            OSReport("action\n\t- Prev Act/Sub: %s/%s\n\t- Cur Act/Sub: %s/%s\n",
+                actionName(target.prev->action), target.prev->subactionName,
+                actionName(target.current->action), target.current->subactionName
+            );
+            if (target.becameActionableOnFrame == -1) {
+                target.becameActionableOnFrame = frameCounter;
+            }
+        }
+    }
+
+    if (target.becameActionableOnFrame != -1 && 
+        (frameCounter - target.becameActionableOnFrame) > GlobalSettings::shieldActionabilityTolerance) {
         return true;
+    } else {
+        return false;
     }
 
-    if (target.current->occupiedActionableState) {
-        OSReport(strDefActionable, frameCounter, target.playerNumber);
-        OSReport("action\n\t- Prev Act/Sub: %s/%s\n\t- Cur Act/Sub: %s/%s\n",
-            actionName(target.prev->action), target.prev->subactionName,
-            actionName(target.current->action), target.current->subactionName
-        );
-        target.becameActionableOnFrame = frameCounter;
-        return true;
-    }
-
-
-    return false;
 }
 #pragma endregion
 

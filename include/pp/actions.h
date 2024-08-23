@@ -210,5 +210,6 @@ bool isEATBitExclusion(ftKind charKind, int actionId);
 bool isAttackingAction(u16 action);
 bool isDefinitelyActionable(u16 action);
 bool isLandingAction(u16 action);
+bool isStunAction(u16 action);
 const char* actionName(u16 action);
 }
