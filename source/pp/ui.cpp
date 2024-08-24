@@ -2,6 +2,8 @@
 
 #include <ft/ft_manager.h>
 #include <gf/gf_draw.h>
+#include <gf/gf_pad_system.h>
+#include <gf/gf_pad_status.h>
 #include <GX/GXPixel.h>
 
 #include "pp/collections/linkedlist.h"
@@ -98,20 +100,6 @@ void PpunchMenu::init() {
 
         addPage(&newPage);
 
-        PadStatus pad;
-        pad.btns.bits = (
-            g_padStatus[0].btns.bits 
-            | g_padStatus[1].btns.bits 
-            | g_padStatus[2].btns.bits 
-            | g_padStatus[3].btns.bits
-        );
-
-        /* If it's a VS Mode, only show if L/R are held. In training mode, 
-            * auto-open the menu UNLESS L/R are held. 
-            */
-        if ((getScene() == VS) == (pad.btns.L == true || pad.btns.R == true)) {
-            punchMenu.toggle();
-        }
     }
 
     #ifdef PP_MENU_DISPLAY_DEBUG
@@ -155,6 +143,15 @@ void PpunchMenu::init() {
     addPage(&displayOptsPage);
     #endif
 
+    /* If it's a VS Mode, only show if L/R are held. In training mode, 
+     * auto-open the menu UNLESS L/R are held. 
+     */
+    gfPadStatus pad;
+    g_gfPadSystem.getSysPadStatus(GF_PAD_SYSTEM_GET_ALL_PADS, &pad);
+    DEBUG_INIT("Pad buttons on menu init: 0x%08x\n", pad.m_buttonsCurrentFrame.bits);
+    if ((getScene() == VS) == (pad.m_buttonsCurrentFrame.m_l == true || pad.m_buttonsCurrentFrame.m_r == true)) {
+        punchMenu.toggle();
+    }
 
     currentPageIdx = 0;
     initialized = true;
