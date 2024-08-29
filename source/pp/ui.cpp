@@ -52,18 +52,18 @@ void PpunchMenu::init() {
 
     Page* globalSettingsPage = new Page(this);
     snprintf(globalSettingsPage->title, 256, "Global Settings");
-    globalSettingsPage->addOption(new IntOption<int>("Max On-Screen Displays", GlobalSettings::maxOsdLimit, 1, 10, true, false));
-    globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", GlobalSettings::maxLedgedashVizFrames, 30, 64, true, false));
-    globalSettingsPage->addOption(new BoolOption("Enable Frame Advance", GlobalSettings::enableFrameAdvance, true));
-    globalSettingsPage->addOption(new BoolOption("Invisible Tech Reaction Trainer", GlobalSettings::enableInvisibleTechs, true));
+    globalSettingsPage->addOption(new IntOption<int>("Max On-Screen Displays", globalSettings.maxOsdLimit, 1, 10, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", globalSettings.maxLedgedashVizFrames, 30, 64, true, false));
+    globalSettingsPage->addOption(new BoolOption("Enable Frame Advance", globalSettings.enableFrameAdvance, true));
+    globalSettingsPage->addOption(new BoolOption("Invisible Tech Reaction Trainer", globalSettings.enableInvisibleTechs, true));
     globalSettingsPage->addOption(new ChoiceOption(
         "Frame Advance Button", 
         frameAdvanceButtonOptions, 
-        *((int*)&GlobalSettings::frameAdvanceButton),
+        *((int*)&globalSettings.frameAdvanceButton),
         PP_FAB_OPT_COUNT
     ));
-    globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", GlobalSettings::frameAdvanceRepeatDelayFrames, 5, 60, true, false));
-    globalSettingsPage->addOption(new IntOption<int>("Actionable OoShield Minimum", GlobalSettings::shieldActionabilityTolerance, 0, 5, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", globalSettings.frameAdvanceRepeatDelayFrames, 5, 60, true, false));
+    globalSettingsPage->addOption(new IntOption<int>("Actionable OoShield Minimum", globalSettings.shieldActionabilityTolerance, 0, 5, true, false));
     this->addPage(globalSettingsPage);
     
 
@@ -72,19 +72,20 @@ void PpunchMenu::init() {
     for (u32 i = 0; i < fighters; i++) {
         Page& newPage = *(new Page(this));
         PlayerData& player = allPlayerData[i];
+        PlayerSettings& playerSettings = player.settings();
         const char* ftName = player.fighterName;
         DEBUG_MENU("Adding page for P%d: %s @ 0x%x\n", player.playerNumber, ftName, (void*)&player);
         snprintf(newPage.title, 256, "P%d = %s", i+1, player.fighterName);
-        newPage.addOption(new BoolOption("On-Shield Adv OSD", player.showOnShieldAdvantage));
-        newPage.addOption(new BoolOption("On-Hit Adv OSD", player.showOnHitAdvantage));
-        newPage.addOption(new BoolOption("Ledgedash Visualization", player.enableLedgeTechFrameDisplay));
-        newPage.addOption(new BoolOption("GALINT OSD", player.enableLedgeTechGalintPopup));
-        newPage.addOption(new BoolOption("Frames-on-ledge OSD", player.enableLedgeTechFramesOnLedgePopup));
-        newPage.addOption(new BoolOption("Ledgedash Angle OSD", player.enableLedgeTechAirdodgeAngle));
-        newPage.addOption(new BoolOption("Wait Overlay", player.enableWaitOverlay));
-        newPage.addOption(new BoolOption("Dash Overlay", player.enableDashOverlay));
-        newPage.addOption(new BoolOption("IASA Overlay", player.enableIasaOverlay));
-        newPage.addOption(new BoolOption("Show Fighter State", player.showFighterState));
+        newPage.addOption(new BoolOption("On-Shield Adv OSD", playerSettings.showOnShieldAdvantage));
+        newPage.addOption(new BoolOption("On-Hit Adv OSD", playerSettings.showOnHitAdvantage));
+        newPage.addOption(new BoolOption("Ledgedash Visualization", playerSettings.enableLedgeTechFrameDisplay));
+        newPage.addOption(new BoolOption("GALINT OSD", playerSettings.enableLedgeTechGalintPopup));
+        newPage.addOption(new BoolOption("Frames-on-ledge OSD", playerSettings.enableLedgeTechFramesOnLedgePopup));
+        newPage.addOption(new BoolOption("Ledgedash Angle OSD", playerSettings.enableLedgeTechAirdodgeAngle));
+        newPage.addOption(new BoolOption("Wait Overlay", playerSettings.enableWaitOverlay));
+        newPage.addOption(new BoolOption("Dash Overlay", playerSettings.enableDashOverlay));
+        newPage.addOption(new BoolOption("IASA Overlay", playerSettings.enableIasaOverlay));
+        newPage.addOption(new BoolOption("Show Fighter State", playerSettings.showFighterState));
         newPage.addOption(new SpacerOption());
 
         /*

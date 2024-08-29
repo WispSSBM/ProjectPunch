@@ -27,6 +27,8 @@ using namespace PP::Graphics;
 using namespace PP::Input;
 using namespace PP::Collections;
 
+bool oneShot = false;
+
 namespace PP {
 bool battleSceneInitialized = false;
 
@@ -73,6 +75,10 @@ void updatePreFrame() {
         gfHeapManager::dumpList();
     }
     #endif
+    if (!oneShot) {
+        oneShot = true;
+        globalSettings.readGlobalSettings(PP_SETTINGS_FILE_PATH);
+    }
 
     SCENE_TYPE sceneType = (SCENE_TYPE)getScene();
 
@@ -88,6 +94,7 @@ void updatePreFrame() {
     } else { // end if we're a relevant scene.
         if (battleSceneInitialized) {
             battleSceneInitialized = false;
+            globalSettings.writeGlobalSettings(PP_SETTINGS_FILE_PATH);
             punchMenu.cleanup();
 
             delete[] allPlayerData;
@@ -143,17 +150,15 @@ bool initializePlayer(u8 playerEntryIdx) {
     StatusChangeWatcher* statusChangeWatcher = new StatusChangeWatcher(&allPlayerData[playerNumber]);
     statusChangeWatcher->registerWith(fighter);
     allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
+    PlayerSettings& playerSettings = allPlayerData[playerNumber].settings();
 
     DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
-    if (opType == 0) { // Player is a human
-        allPlayerData[playerNumber].showOnShieldAdvantage = true;
-        allPlayerData[playerNumber].showOnHitAdvantage = false;
-
-        if (getScene() == TRAINING_MODE_MMS) {
-            allPlayerData[playerNumber].enableLedgeTechFramesOnLedgePopup = false;
-            allPlayerData[playerNumber].enableLedgeTechGalintPopup = true;
-            allPlayerData[playerNumber].enableLedgeTechFrameDisplay = true;
-        }
+    if (opType != 0) { // Player is a CPU
+        playerSettings.showOnShieldAdvantage = false;
+        playerSettings.showOnHitAdvantage = false;
+        playerSettings.enableLedgeTechFramesOnLedgePopup = false;
+        playerSettings.enableLedgeTechGalintPopup = false;
+        playerSettings.enableLedgeTechFrameDisplay = false;
     };
     playerData.prepareNextFrame();
 
@@ -193,6 +198,7 @@ void initializeBattleScene() {
 
         punchMenu.init();
         battleSceneInitialized = true;
+
     }
 }
 
@@ -228,7 +234,7 @@ void updateBattleScene() {
         }
 
         for (idx = 0; idx < fighterCount; idx++) {
-            if (allPlayerData[idx].showFighterState) {
+            if (allPlayerData[idx].settings().showFighterState) {
                 allPlayerData[idx].printFighterState();
                 break;
             }
@@ -459,9 +465,9 @@ void checkAttackTargetActionable(PlayerData& player) {
             /* Lots of weird edge cases where the ending doesn't register, such as dying or teching. */
             /* > 30 frames is generally judge-able with a human eye anyway. */
             if (advantage > -50 && advantage < 50) {
-                if (player.isAttackingFighter && player.showOnHitAdvantage) {
+                if (player.isAttackingFighter && player.settings().showOnHitAdvantage) {
                     player.createPopup("OnHit: %+d\n", advantage);
-                } else if (player.isAttackingShield && player.showOnShieldAdvantage) {
+                } else if (player.isAttackingShield && player.settings().showOnShieldAdvantage) {
                     player.createPopup("OnShield: %+d\n", advantage);
                 }
             }

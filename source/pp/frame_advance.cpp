@@ -59,7 +59,7 @@ void gfPadUpdateHook() {
 bool FrameAdvanceModule::isRunning() {
     SCENE_TYPE scene = getScene();
     return (
-        (GlobalSettings::enableFrameAdvance)
+        (globalSettings.enableFrameAdvance)
         && (scene == VS || scene == TRAINING_MODE_MMS)
         && !punchMenu.paused
     );
@@ -71,7 +71,7 @@ void FrameAdvanceModule::handleInput(gfPadStatus& padStatus) {
         return;
     }
 
-    switch(GlobalSettings::frameAdvanceButton) {
+    switch(globalSettings.frameAdvanceButton) {
         case FAB_Z:
             _btnPressedThisFrame = _btnPressedThisFrame || padStatus.m_buttonsCurrentFrame.m_z;
             padStatus.m_buttonsCurrentFrame.m_z = 0;
@@ -115,7 +115,7 @@ void FrameAdvanceModule::process() {
 
         if (this->btnHeldDuration == 1) {
             this->paused = false;
-        } else if (this->btnHeldDuration > GlobalSettings::frameAdvanceRepeatDelayFrames) {
+        } else if (this->btnHeldDuration > globalSettings.frameAdvanceRepeatDelayFrames) {
             this->paused = false;
         } else {
             this->paused = true;

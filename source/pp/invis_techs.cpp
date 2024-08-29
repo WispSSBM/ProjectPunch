@@ -29,7 +29,7 @@ typedef void (*setActiveStatusPtr)(int*, bool);
 
 namespace PP {
 
-static bool& enableInvisTechs = GlobalSettings::enableInvisibleTechs;
+static bool& enableInvisTechs = globalSettings.enableInvisibleTechs;
 
 // defined in EXTRAS.lst
 

@@ -27,10 +27,11 @@ const char* g_frameTypeLabels[] = {
 };
 
 bool PP::LedgeTechWatcher::isEnabled(const PlayerData& playerData) { 
-    return playerData.enableLedgeTechFrameDisplay
-        || playerData.enableLedgeTechGalintPopup
-        || playerData.enableLedgeTechFramesOnLedgePopup
-        || playerData.enableLedgeTechAirdodgeAngle;
+    PlayerSettings& settings = globalSettings.playerSettings[playerData.playerNumber];
+    return settings.enableLedgeTechFrameDisplay
+        || settings.enableLedgeTechGalintPopup
+        || settings.enableLedgeTechFramesOnLedgePopup
+        || settings.enableLedgeTechAirdodgeAngle;
 }
 
 /* 
@@ -71,7 +72,7 @@ void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame, soModuleAccesser& mod
         actionableLedgeFrames -= 2;
     }
 
-    if (actionableLedgeFrames > GlobalSettings::maxLedgedashVizFrames) {
+    if (actionableLedgeFrames > globalSettings.maxLedgedashVizFrames) {
         return; // This will cause overflows, but shouldn't be able to happen.
     }
 
@@ -80,7 +81,7 @@ void PP::LedgeTechWatcher::didLeaveCliff(int fighterFrame, soModuleAccesser& mod
     }
     _framesRecorded = actionableLedgeFrames;
 
-    if (playerData->enableLedgeTechFramesOnLedgePopup) {
+    if (playerData->settings().enableLedgeTechFramesOnLedgePopup) {
         playerData->createPopup("OffLedge: Frame %d\n", actionableLedgeFrames + 1);
     }
 
@@ -131,11 +132,11 @@ void PP::LedgeTechWatcher::didFinishLedgeDash(int fighterFrame, soModuleAccesser
         _specialLandFrames, _otherFrames
     );
 
-    if (playerData->enableLedgeTechFrameDisplay) {
+    if (playerData->settings().enableLedgeTechFrameDisplay) {
         drawLedgeDash();
     }
 
-    if (playerData->enableLedgeTechGalintPopup) {
+    if (playerData->settings().enableLedgeTechGalintPopup) {
         playerData->createPopup("GALINT: %d\n", playerData->current->ledgeIntan);
     }
 
@@ -219,7 +220,7 @@ void PP::LedgeTechWatcher::updateCurrentFrameCounter(int statusKind)
 }
 
 bool PP::LedgeTechWatcher::shouldStopWatching() {
-    return _totalFrames >= GlobalSettings::maxLedgedashVizFrames || playerData->current->action == ACTION_UNLOADED;
+    return _totalFrames >= globalSettings.maxLedgedashVizFrames || playerData->current->action == ACTION_UNLOADED;
 }
 
 void PP::LedgeTechWatcher::resetState() {
@@ -329,7 +330,7 @@ void PP::LedgeTechWatcher::process(Fighter& fighter)
         if (_showAirdodgeNextUpdate) {
             _showAirdodgeNextUpdate = false;
 
-            if (playerData->enableLedgeTechAirdodgeAngle) {
+            if (playerData->settings().enableLedgeTechAirdodgeAngle) {
                 playerData->createPopup("Airdodge: %0.0fdeg\n", playerData->current->stick.quadrantDegrees());
             }
         }

@@ -8,21 +8,23 @@ namespace PP {
 void processOverlays(const PlayerData& player) {
     Fighter& fighter = *g_ftManager->getFighter(player.entryId, 0);
     soColorBlendModule* cbm = fighter.m_moduleAccesser->getColorBlendModule();
+    const PlayerSettings& settings = globalSettings.playerSettings[player.playerNumber];
+
     bool overlaySetThisFrame = false;
     if (cbm == NULL) {
         DEBUG_OVERLAY("Player %d with fighter @ 0x%0x has null color blend mod.\n", player.playerNumber, &fighter);
         return;
     }
 
-    if (player.enableWaitOverlay) {
+    if (settings.enableWaitOverlay) {
         overlaySetThisFrame |= processWaitOverlay(player, *cbm);
     }
 
-    if (player.enableDashOverlay) {
+    if (settings.enableDashOverlay) {
         overlaySetThisFrame |= processDashOverlay(player, *cbm);
     }
 
-    if (player.enableIasaOverlay) {
+    if (settings.enableIasaOverlay) {
         overlaySetThisFrame |= processIasaOverlay(player, *cbm);
     }
 

@@ -51,6 +51,8 @@
 extern "C" const char* g_strError;          // "ERROR STRING: %s\n"
 extern "C" const char* g_strTypedError;     // "%s Error: %d\n"
 extern GameGlobal* g_GameGlobal;
+void OSSleepTicks(u32 unk, u32 ticks);
+
 namespace PP {
 
     struct Coord2DF;
@@ -146,6 +148,10 @@ namespace PP {
 
     inline bool betweenIncl(int a, int b, int c) { return (a <= b && b <= c); }
     inline bool betweenExcl(int a, int b, int c) { return (a < b && b < c); }
+
+    inline u32 defaultSleepTicks() {
+        return (*(u32*)0x800000F8) / 4000;
+    }
 
     bool startsWith(const char* testStr, const char* prefix);
     size_t printBinaryString(char* buffer, int byte);

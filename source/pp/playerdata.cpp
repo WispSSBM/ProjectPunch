@@ -34,20 +34,6 @@ PlayerData::PlayerData() {
     isAttackingFighter = false;
 
     didActionChange = false;
-
-    showOnHitAdvantage = false;
-    showOnShieldAdvantage = false;
-    showFighterState = false;
-    showActOutOfLag = false;
-
-    enableWaitOverlay = false;
-    enableDashOverlay = false;
-    enableIasaOverlay = false;
-    enableLedgeTechFrameDisplay = false;
-    enableLedgeTechFramesOnLedgePopup = false;
-    enableLedgeTechGalintPopup = false;
-    enableLedgeTechAirdodgeAngle = false;
-
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
     ledgeTechWatcher = NULL;
@@ -144,7 +130,7 @@ void PlayerData::printFighterState() const {
 
 Popup* PlayerData::createPopup(const char* fmt, ...)
 {
-    if (playerPopups[playerNumber].length >= GlobalSettings::maxOsdLimit) {
+    if (playerPopups[playerNumber].length >= globalSettings.maxOsdLimit) {
         playerPopups->removeEnd();
     }
 
@@ -244,7 +230,7 @@ bool PlayerData::resolveTargetActionable() {
     }
 
     if (target.becameActionableOnFrame != -1 && 
-        (frameCounter - target.becameActionableOnFrame) > GlobalSettings::shieldActionabilityTolerance) {
+        (frameCounter - target.becameActionableOnFrame) > globalSettings.shieldActionabilityTolerance) {
         return true;
     } else {
         return false;

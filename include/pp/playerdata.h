@@ -56,21 +56,6 @@ struct PlayerData {
     // Set by the event system.
     u32 didActionChange: 1;
 
-    /* display flags */
-    // These aren't bitfields because you can't take a pointer to a bitfield, and that
-    // would mess with the menu system.
-    bool showOnHitAdvantage;       // 0x34
-    bool showOnShieldAdvantage;    // 0x35
-    bool showActOutOfLag;          // 0x36
-    bool showFighterState;         // 0x47
-    bool enableWaitOverlay;        // 0x48
-    bool enableDashOverlay;        // 0x49
-    bool enableIasaOverlay;        // 0x4A
-    bool enableLedgeTechGalintPopup;
-    bool enableLedgeTechFrameDisplay;
-    bool enableLedgeTechFramesOnLedgePopup;
-    bool enableLedgeTechAirdodgeAngle;
-
     AnimCmdWatcher* animCmdWatcher;
     StatusChangeWatcher* statusChangeWatcher;
     LedgeTechWatcher* ledgeTechWatcher;
@@ -112,6 +97,7 @@ struct PlayerData {
     bool resolveTargetActionable();
     Popup* createPopup(const char* fmt, ...);
     int debugStr(char* buffer) const;
+    inline PlayerSettings& settings() { return globalSettings.playerSettings[this->playerNumber]; };
 };
 
 struct PlayerDisplayOptions {
