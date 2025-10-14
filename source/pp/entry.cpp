@@ -24,13 +24,13 @@ asm void pauseHook() {
     b pauseHookReturn;
 }
 
-void Init() {
+void Init(CoreApi* syriinge) {
     //SyringeCore::syInlineHook(0x800177B0, (void*)ProjectPunch::featureTester);
-    SyringeCore::syInlineHook(0x80017794, (void*)PP::updatePreFrame);
-    SyringeCore::syInlineHook(0x8002a258, PP::gfPadUpdateHook);
-    SyringeCore::sySimpleHook(0x8002e5b0, pauseHook);
-    SyringeCore::sySimpleHookRel(0x5afb4, PP::invisTechsMainHook, 27);
-    SyringeCore::sySimpleHookRel(0x12fee4, PP::invisTechsCursorHook, 27);
+    syriinge->syInlineHook(0x80017794, (void*)PP::updatePreFrame);
+    syriinge->syInlineHook(0x8002a258, PP::gfPadUpdateHook);
+    syriinge->sySimpleHook(0x8002e5b0, pauseHook);
+    syriinge->sySimpleHookRel(0x5afb4, PP::invisTechsMainHook, 27);
+    syriinge->sySimpleHookRel(0x12fee4, PP::invisTechsCursorHook, 27);
     // SyringeCore::sySimpleHookRel(0x12ff78, PP::invisTechsCursorHook, 27);
     // SyringeCore::sySimpleHookRel(0x12ffD4, PP::invisTechsNameCursorHook, 27);
 }
