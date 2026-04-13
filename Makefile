@@ -43,15 +43,21 @@ INCLUDES	:=	include
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CC 			:= $(TOOLS)/MWCC4_2/mwcceppc.exe
-CXX 		:= $(TOOLS)/MWCC4_2/mwcceppc.exe
-LD 			:= $(TOOLS)/MWCC4_2/mwldeppc.exe
-ELF2REL		:= $(TOOLS)/elf2rel.exe
+ifeq ($(shell uname), Linux)
+    CC      := $(TOOLS)/MWCC4_2_linux/mwcceppc
+    CXX     := $(TOOLS)/MWCC4_2_linux/mwcceppc
+    LD      := $(TOOLS)/MWCC4_2_linux/mwldeppc
+    ELF2REL	:= $(TOOLS)/elf2rel
+else
+    CC      := $(TOOLS)/MWCC4_2/mwcceppc.exe
+    CXX     := $(TOOLS)/MWCC4_2/mwcceppc.exe
+    LD      := $(TOOLS)/MWCC4_2/mwldeppc.exe
+    ELF2REL	:= $(TOOLS)/elf2rel.exe
+endif
 
-
-CCFLAGS		:= -Cpp_exceptions off -c -proc gekko -nostdinc -O4,s -inline auto -fp hard -u _prolog -u _epilog -u _unresolved -enum int -sdata 0 -sdata2 0 -func_align 4
-CXXFLAGS	:= -lang=c++ $(CCFLAGS)
-LDFLAGS		:= -lcf $(LCF) -r1 -fp hard -m _prolog -g -strip_partial
+CCFLAGS  := -Cpp_exceptions off -c -proc gekko -nostdinc -O4,s -inline auto -fp hard -u _prolog -u _epilog -u _unresolved -enum int -sdata 0 -sdata2 0 -func_align 4
+CXXFLAGS := -lang=c++ $(CCFLAGS)
+LDFLAGS  := -lcf $(LCF) -r1 -fp hard -m _prolog -g -strip_partial
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
