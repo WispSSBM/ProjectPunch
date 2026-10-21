@@ -12,16 +12,14 @@ fi
 mkdir tmp
 
 cd tmp
-mkdir -p Source/
-mkdir -p pf/module
-mkdir -p pf/plugins
+mkdir -p "Project+"
+mkdir -p "Project+/pf/plugins"
+mkdir -p "Project+/ppunch"
 
 cp ../ProjectPunch.map ./
-cp ../ProjectPunch.rel ./pf/plugins
+cp ../ProjectPunch.rel ./Project+/pf/plugins/
 cp ../README.md ./
-cp ../tools/sy_core.rel ./pf/module
-cp ../tools/syriinge.asm ./Source
-cp ../tools/pre_syriinge.asm ./Source
+cp ../tools/actions.bin ./Project+/ppunch/
 
 zip -r "ProjectPunch-${VER}.zip" ./*
 mv ./*.zip ../
