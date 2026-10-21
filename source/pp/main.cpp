@@ -10,6 +10,7 @@
 #include <memory.h>
 
 #include "pp/main.h"
+#include "pp/actions.h"
 #include "pp/utils.h"
 #include "pp/ui.h"
 #include "pp/collections/linkedlist.h"
@@ -78,6 +79,7 @@ void updatePreFrame() {
     if (!oneShot) {
         oneShot = true;
         globalSettings.readGlobalSettings(PP_SETTINGS_FILE_PATH);
+        loadActionNames(PP_ACTION_NAMES_FILE_PATH);
     }
 
     SCENE_TYPE sceneType = (SCENE_TYPE)getScene();

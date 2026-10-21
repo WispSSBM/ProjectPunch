@@ -3,7 +3,7 @@
 #include "pp/frame_advance.h"
 
 #define PP_SETTINGS_FILE_VERSION 1
-#define PP_SETTINGS_FILE_PATH "sd:/Project+/projectpunch_settings.bin"
+#define PP_SETTINGS_FILE_PATH "sd:/Project+/ppunch/settings.bin"
 
 namespace PP {
 

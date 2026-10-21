@@ -88,4 +88,32 @@ void printMessage(char const* msg, float xPos, float yPos, Color color = PP_COLO
     printer.renderBoundingBox();
 }
 
+/* Reads a file to a specified heap, returns the file handle after waiting for the read to finish.*/
+gfFileIOHandle* readFileBlocking(const char* file_name, Heaps::HeapType heapType, size_t len) {
+    gfFileIOHandle* handle = new gfFileIOHandle();
+
+    if (!handle->checkFileRequest(file_name)) {
+        return false;
+    }
+    while (!handle->isReady()) {
+        OSSleepTicks(0, defaultSleepTicks());
+    }
+    if (handle->getReturnStatus() != 0) {
+        return false;
+    }
+
+    handle->read(file_name, heapType, len);
+    while (!handle->isReady()) {
+        OSSleepTicks(0, defaultSleepTicks());
+    }
+    if (handle->getReturnStatus() != 0) {
+        handle->release();
+        return NULL;
+    }
+
+    return handle;
+}
+
+
+
 } // namespace PP

@@ -12,6 +12,28 @@ This is an implementation of a [Syriinge](https://github.com/Sammi-Husky/Syriing
 # Building
 To build, simply run `make` on the command line.
 
+To generate the external action-name binary, run:
+
+```sh
+python tools/pack_actions.py
+# Or choose an output path:
+python tools/pack_actions.py path/to/actions.bin
+```
+
+The script stores action IDs and names in its `ACTIONS` dictionary literal.
+Edit that dictionary to update the list. The default output is
+`build/actions.bin`. It contains a headerless, big-endian `u16` offset table
+followed by null-terminated ASCII strings. Identical names share an offset;
+missing IDs have offset `0xFFFF`. Offsets are relative to the start of the
+string data.
+
+The table length is the highest action ID in `ACTIONS` plus one: currently `0x11F`
+entries (574 bytes), including action `0x11E`. The runtime loader must use this
+same length to locate the strings. Use `--count 0x120` to explicitly choose a
+different table length (update the runtime count to match). Copy the generated
+file to `sd://pf/ppunch/actions.bin`. The game loads it once at startup; missing
+or invalid files and unnamed IDs display `UNLABELED`.
+
 # Installing
 [Download ProjectPunch.rel from the latest release](https://github.com/WispSSBM/ProjectPunch/releases),
 then move ProjectPunch.rel into `Project+/pf/plugins/` on your SD card.

@@ -3,6 +3,8 @@
 #include <stl/cstddef>
 #include <ft/fighter.h>
 
+#define PP_ACTION_NAMES_FILE_PATH "sd:/Project+/ppunch/actions.bin"
+
 #pragma region
 #define ACTION_WAIT 0X0
 #define ACTION_WALK 0X1
@@ -211,5 +213,7 @@ bool isAttackingAction(u16 action);
 bool isDefinitelyActionable(u16 action);
 bool isLandingAction(u16 action);
 bool isStunAction(u16 action);
+// Returns false if the packed file is absent, unreadable, or invalid.
+void loadActionNames(const char* filename);
 const char* actionName(u16 action);
 }
