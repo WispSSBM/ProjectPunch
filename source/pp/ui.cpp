@@ -169,62 +169,42 @@ void PpunchMenu::cleanup() {
     visible = false;
 }
 
+bool handleDebounce(bool inputPressed, u8* debounce, u8* debounceDelay) {
+    if (inputPressed) {
+        if (*debounce >= *debounceDelay) {
+            *debounce = 0;
+
+            (*debounceDelay) = (*debounceDelay) == 0
+                ? PP_MENU_BASE_INPUT_DELAY
+                : (*debounceDelay) * PP_MENU_INPUT_SCALING;
+
+            if (*debounceDelay < PP_MENU_INPUT_DELAY_MIN) {
+                *debounceDelay = PP_MENU_INPUT_DELAY_MIN;
+            }
+
+            return true;
+        } else {
+            (*debounce)++;
+            return false;
+        }
+    } else {
+        *debounce = 0;
+        *debounceDelay = 0;
+        return false;
+    }
+}
+
 #define ANALOG_DEADZONE 30
 void PpunchMenu::handleInput() {
     PpunchMenu& menu = *this;
 
-    u16 mask = 0b0001111101111111; // These button fields are unknown.
-
-    PadButtons buttons = 0;
-    s8 stickX = 0;
-    s8 stickY = 0;
-    for (int i = 0; i < 4; i++) {
-        if (stickX == 0 && g_padStatus[i].stickX > ANALOG_DEADZONE || g_padStatus[i].stickX < -ANALOG_DEADZONE) {
-            stickX = g_padStatus[i].stickX;
-        }
-
-        if (stickY == 0 && g_padStatus[i].stickY > ANALOG_DEADZONE || g_padStatus[i].stickY < -ANALOG_DEADZONE) {
-            stickY = g_padStatus[i].stickY;
-        }
-
-        buttons.bits |= g_padStatus[i].btns.bits;
-    }
-    buttons.bits &= mask;
-
-
-
-    // The following additions to the mask are things that we want
-    // to not trigger if they are held down. 
-    // This masks out the Y button bit... this is fine because 
-    // the Y button is just a hold modifier so we don't actually
-    // want it trigger our debounce. Same with held L and R.
-    mask &= 0b1111011111111111;
-    if (LLastFrame) {
-        mask &= 0b1111111110111111;
-    }
-    if (RLastFrame) {
-        mask &= 0b1111111111011111;
-    }
-
+    gfPadStatus padStatus;
+    g_gfPadSystem.getSysPadStatus(GF_PAD_SYSTEM_GET_ALL_PADS, &padStatus);
 
     do {
-        if ((buttons.bits & mask) == 0 && stickX == 0 && stickY == 0) {
-            #ifdef PP_MENU_INPUT_DEBUG
-            OSReport("Bailed out by bitmask: %d\n", btn.bits);
-            #endif
-            break; // shortcut
-        }
-
-        if (!buttons.X && ((menuFrameCounter - lastInputFrame) < PP_MENU_INPUT_SPEED)) {
-            #ifdef PP_MENU_INPUT_DEBUG
-            OSReport("Bailed out by debounce: %d\n", btn.bits);
-            #endif
-            break; // debounce inputs.
-        }
-
         lastInputFrame = menuFrameCounter;
 
-        if (buttons.L && buttons.R && buttons.UpDPad) {
+        if (padStatus.m_buttonsCurrentFrame.m_l && padStatus.m_buttonsCurrentFrame.m_r && padStatus.m_buttonsPressedThisFrame.m_dpadUp) {
             menu.toggle();
             break;
         }
@@ -236,21 +216,54 @@ void PpunchMenu::handleInput() {
             break; // reduce nesting.
         }
 
-        if (buttons.A) { menu.select();   break; }
-        if (buttons.B) { menu.deselect(); break; }
-        if (buttons.Start) { menu.toggle(); break; }
+        if (padStatus.m_buttonsPressedThisFrame.m_a) { menu.select();   break; }
+        if (padStatus.m_buttonsPressedThisFrame.m_b) { menu.deselect(); break; }
+        if (padStatus.m_buttonsPressedThisFrame.m_start) { menu.toggle(); break; }
+        
+        if (
+            handleDebounce(
+                padStatus.m_buttonsCurrentFrame.m_dpadUp || padStatus.m_stickY > ANALOG_DEADZONE,
+                &upDebounce,
+                &upDebounceDelay
+            )
+        ) {
+                menu.up();
+        };
 
-        if      (buttons.UpDPad    || stickY > 0) menu.up();
-        else if (buttons.DownDPad  || stickY < 0) menu.down();
-        else if (buttons.RightDPad || stickX > 0) menu.modify(buttons.Y ? 5 : 1);
-        else if (buttons.LeftDPad  || stickX < 0) menu.modify(buttons.Y ? -5 : -1);
-        else if (buttons.L && !LLastFrame)  menu.prevPage();
-        else if (buttons.R && !RLastFrame)  menu.nextPage();
+        if (
+            handleDebounce(
+                padStatus.m_buttonsCurrentFrame.m_dpadDown || padStatus.m_stickY < -ANALOG_DEADZONE,
+                &downDebounce,
+                &downDebounceDelay
+            )
+        ) {
+                menu.down();
+        };
+
+        if (
+            handleDebounce(
+                padStatus.m_buttonsCurrentFrame.m_dpadRight || padStatus.m_stickX > ANALOG_DEADZONE,
+                &rightDebounce,
+                &rightDebounceDelay
+            )
+        ) {
+                menu.modify(padStatus.m_buttonsCurrentFrame.m_y ? 5 : 1);
+        };
+
+        if (
+            handleDebounce(
+                padStatus.m_buttonsCurrentFrame.m_dpadLeft || padStatus.m_stickX < -ANALOG_DEADZONE,
+                &leftDebounce,
+                &leftDebounceDelay
+            )
+        ) {
+                menu.modify(padStatus.m_buttonsCurrentFrame.m_y ? -5 : -1);
+        };
+
+        if (padStatus.m_buttonsPressedThisFrame.m_l)  menu.prevPage();
+        if (padStatus.m_buttonsPressedThisFrame.m_r)  menu.nextPage();
         //}
     } while (false);
-
-    LLastFrame = buttons.L == true;
-    RLastFrame = buttons.R == true;
     return;
 }
 
@@ -376,6 +389,7 @@ void PpunchMenu::drawHighlightBox() {
 
 #define P1_2P_WIDESCREEN_COORDS Coord2D(200, 350)
 #define P2_2P_WIDESCREEN_COORDS Coord2D(355, 350)
+#define P1_1P_COORDS Coord2D(50, 400)
 #define P1_2P_COORDS Coord2D(180, 350)
 #define P2_2P_COORDS Coord2D(390, 350)
 #define P1_4P_COORDS Coord2D(50, 350)
@@ -403,6 +417,9 @@ Coord2D getHpPopupBoxCoords(int playerNum) {
 
     totalPlayers = g_ftManager->getEntryCount();
 
+    if (totalPlayers == 1) {
+        return P1_1P_COORDS;
+    }
     if (totalPlayers == 2) {
         if (g_GameGlobal->m_record->m_menuData.m_isWidescreen) {
             switch(playerNum) {

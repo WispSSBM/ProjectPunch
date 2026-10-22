@@ -6,6 +6,9 @@
 namespace PP {
 
 #define PP_MENU_INPUT_SPEED 10
+#define PP_MENU_BASE_INPUT_DELAY 15
+#define PP_MENU_INPUT_SCALING 0.3
+#define PP_MENU_INPUT_DELAY_MIN 2
 class PpunchMenu : public Menu {
     public:
         PpunchMenu() {
@@ -37,8 +40,14 @@ class PpunchMenu : public Menu {
             fixedHeight = true;
             initialized = false;
 
-            LLastFrame = false;
-            RLastFrame = false;
+            upDebounce = 0;
+            downDebounce = 0;
+            leftDebounce = 0;
+            rightDebounce = 0;
+            upDebounceDelay = 0;
+            downDebounceDelay = 0;
+            leftDebounceDelay = 0;
+            rightDebounceDelay = 0;
         };
 
         Coord2D pos;
@@ -66,8 +75,14 @@ class PpunchMenu : public Menu {
         bool isActive() { return this->visible && this->paused; };
     private:
         u32 lastInputFrame;
-        bool LLastFrame;
-        bool RLastFrame;
+        u8 upDebounce;
+        u8 downDebounce;
+        u8 leftDebounce;
+        u8 rightDebounce;
+        u8 upDebounceDelay;
+        u8 downDebounceDelay;
+        u8 leftDebounceDelay;
+        u8 rightDebounceDelay;
 };
 
 Coord2D getHpPopupBoxCoords(int playerNum);
