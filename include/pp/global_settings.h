@@ -2,7 +2,7 @@
 
 #include "pp/frame_advance.h"
 
-#define PP_SETTINGS_FILE_VERSION 1
+#define PP_SETTINGS_FILE_VERSION 2
 #define PP_SETTINGS_FILE_PATH "sd:/Project+/ppunch/settings.bin"
 
 namespace PP {
@@ -22,6 +22,7 @@ public:
     bool enableLedgeTechFrameDisplay;
     bool enableLedgeTechFramesOnLedgePopup;
     bool enableLedgeTechAirdodgeAngle;
+    bool enableWavedashInfo;
 
     void print();
 };

@@ -22,4 +22,5 @@
 801f4748:GXSetAlphaUpdate
 801f471c:GXSetColorUpdate
 803f0d4c:__destroy_new_array
+803f0dcc:__ptmf_test
 8040012c:atan

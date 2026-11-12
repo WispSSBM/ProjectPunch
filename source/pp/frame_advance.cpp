@@ -14,10 +14,13 @@ const char* frameAdvanceButtonOptions[] = { "Z", "L", "R" };
 void gfPadUpdateHook() {
     register u32 padStatusR29;
     register u32 padStatusR28;
+
+#ifndef __INTELLISENSE__
     asm {
         mr padStatusR28, r28;
         mr padStatusR29, r29;
     }
+#endif
 
     gfPadStatus* padStatus = reinterpret_cast<gfPadStatus*>(padStatusR28);
     gfPadStatus* prevPadStatus = reinterpret_cast<gfPadStatus*>(padStatusR29);

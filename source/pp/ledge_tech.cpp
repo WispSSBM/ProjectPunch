@@ -355,7 +355,7 @@ void PP::LedgeTechWatcher::process(Fighter& fighter)
             DEBUG_LEDGETECH("LEDGETECH f%d: setting frame %d = type %d\n", frameCounter, _framesRecorded, _currentFrameType);
             _framesList[_framesRecorded++] = _currentFrameType;
         } else if (frameDiff != 0) { 
-            OSReport("WARNING f%d: LEDGE TECH WATCHER INCREMENTED BY %d frames\n", frameCounter, frameDiff);
+            DEBUG_LEDGETECH("WARNING f%d: LEDGE TECH WATCHER INCREMENTED BY %d frames\n", frameCounter, frameDiff);
         }
     }
 }

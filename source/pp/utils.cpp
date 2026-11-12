@@ -7,22 +7,32 @@
 namespace PP {
 
 soGeneralWorkSimple* getWorkVars(const Fighter& fighter, WorkModuleVarType varType) {
+    return getWorkVars(fighter.m_moduleAccesser, varType);
+}
+
+soGeneralWorkSimple* getWorkVars(soModuleAccesser* moduleAccesser, WorkModuleVarType varType) {
     // assume the work manage module is of the normal impl type. Not technically typesafe, could use the proper brawl
     // api surface later.
-    const soWorkManageModuleImpl& workModule = *reinterpret_cast<const soWorkManageModuleImpl*>(fighter.m_moduleAccesser->getWorkManageModule());
+    const soWorkManageModuleImpl& workModule = *reinterpret_cast<const soWorkManageModuleImpl*>(moduleAccesser->getWorkManageModule());
     return reinterpret_cast<soGeneralWorkSimple*>(workModule.m_generalWorks[varType]);
 }
 
-bool getRABit(const Fighter& fighter, u32 idx) {
-    soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
+bool getRABit(soModuleAccesser* moduleAccessor, u32 idx) {
+    /*
+     *   Note that this is different than the RA *flags*. Those are boolean variables,
+     *   but a lot of things are stored as bitflags on the lower indexed int variables
+     *   in the RA int variables.
+     */
+
+    soGeneralWorkSimple& raVars = *getWorkVars(moduleAccessor, RA_VARS);
     // array
-    u32* raBools =  raVars.m_flagWorks;
-    int bitFieldsSize = raVars.m_flagWorkSize;
+    u32* raBools =  reinterpret_cast<u32*>(raVars.m_intWorks);
+    int intFieldCount = raVars.m_intWorkSize;
 
     // printRABools(workModule);
 
-    if (!(idx < bitFieldsSize*8*4)) {
-        OSReport("Warning: asked for invalid RA bit %d from workModule %x.\n", idx, (void*)fighter.m_moduleAccesser->getWorkManageModule());
+    if (!(idx < intFieldCount*32)) {
+        OSReport("Warning: asked for invalid RA bit %d from workModule %x.\n", idx, (void*)moduleAccessor->getWorkManageModule());
         return false;
     }
 
@@ -35,11 +45,20 @@ bool getRABit(const Fighter& fighter, u32 idx) {
     }
 }
 
+
+bool getRABit(const Fighter& fighter, u32 idx) {
+    return getRABit(fighter.m_moduleAccesser, idx);
+}
+
 void debugWorkModule(const Fighter& fighter) {
+    return debugWorkModule(fighter.m_moduleAccesser);
+}
+
+void debugWorkModule(soModuleAccesser* moduleAccesser) {
     u32 i;
 
-    soGeneralWorkSimple& raVars = *getWorkVars(fighter, RA_VARS);
-    soGeneralWorkSimple& laVars = *getWorkVars(fighter, LA_VARS);
+    soGeneralWorkSimple& raVars = *getWorkVars(moduleAccesser, RA_VARS);
+    soGeneralWorkSimple& laVars = *getWorkVars(moduleAccesser, LA_VARS);
     int* raBasics = raVars.m_intWorks;
     float* raFloats = raVars.m_floatWorks;
     int* laBasics = laVars.m_intWorks;

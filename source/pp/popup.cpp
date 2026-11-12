@@ -1,4 +1,6 @@
 #include "pp/popup.h"
+#include <gf/gf_scene.h>
+#include <sc/sc_melee.h>
 
 extern u32 frameCounter;
 

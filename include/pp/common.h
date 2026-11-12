@@ -42,6 +42,7 @@
 #define WORK_MODULE_RA_VARS 1
 #define WORK_MODULE_LA_VARS 0
 
+#define RA_BIT_SHORTHOP 0x06
 #define RA_BIT_ENABLE_ACTION_TRANSITION 0x10
 #define RA_BIT_ENABLE_LANDING_LAG 0x1E
 #define PP_M_PI_2		1.57079632679489661923
@@ -141,6 +142,8 @@ namespace PP {
     extern u32 frameCounter;
     extern u32 menuFrameCounter;
     extern char strManipBuffer[PP_STR_MANIP_SIZE];
+    extern const char* g_true;
+    extern const char* g_false;
 
     int max(int a, int b);
     float fmax(float a, float b);
@@ -148,6 +151,10 @@ namespace PP {
 
     inline bool betweenIncl(int a, int b, int c) { return (a <= b && b <= c); }
     inline bool betweenExcl(int a, int b, int c) { return (a < b && b < c); }
+
+    inline const char* sbool(bool b) {
+        return b ? g_true : g_false;
+    }
 
     inline u32 defaultSleepTicks() {
         return (*(u32*)0x800000F8) / 4000;
@@ -168,8 +175,11 @@ namespace PP {
     #define PP_DEBUG_MEM
     #define PP_DEBUG_TEXT_PRINTER
     #define PP_DEBUG_LEDGETECH
+    #define PP_DEBUG_WAVEDASH
+    #define PP_DEBUG_STATUS_CHANGE
     #define PP_DEBUG_INPUT
     #endif
+    #define PP_DEBUG_WAVEDASH
 
     // #define PP_MENU_DISPLAY_DEBUG
 
@@ -220,6 +230,18 @@ namespace PP {
     #define DEBUG_POPUPS(...) (OSReport(__VA_ARGS__))
     #else
     #define DEBUG_POPUPS(...)
+    #endif
+
+    #ifdef PP_DEBUG_STATUS_CHANGE
+    #define DEBUG_STATUS_CHANGE(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_STATUS_CHANGE(...)
+    #endif
+
+    #ifdef PP_DEBUG_WAVEDASH
+    #define DEBUG_WAVEDASH(...) (OSReport(__VA_ARGS__))
+    #else
+    #define DEBUG_WAVEDASH(...)
     #endif
 
     #ifdef PP_DEBUG_LEDGETECH

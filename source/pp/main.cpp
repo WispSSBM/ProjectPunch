@@ -22,6 +22,7 @@
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
 #include "pp/ledge_tech.h"
+#include "pp/wavedash_info.h"
 #include "pp/graphics/watermark.h"
 
 using namespace PP::Graphics;
@@ -96,7 +97,6 @@ void updatePreFrame() {
     } else { // end if we're a relevant scene.
         if (battleSceneInitialized) {
             battleSceneInitialized = false;
-            globalSettings.writeGlobalSettings(PP_SETTINGS_FILE_PATH);
             punchMenu.cleanup();
 
             delete[] allPlayerData;
@@ -152,15 +152,17 @@ bool initializePlayer(u8 playerEntryIdx) {
     StatusChangeWatcher* statusChangeWatcher = new StatusChangeWatcher(&allPlayerData[playerNumber]);
     statusChangeWatcher->registerWith(fighter);
     allPlayerData[playerNumber].statusChangeWatcher = statusChangeWatcher;
-    PlayerSettings& playerSettings = allPlayerData[playerNumber].settings();
 
+    PlayerSettings& playerSettings = allPlayerData[playerNumber].settings();
     DEBUG_INIT("Player %d op type: %d\n", playerNumber, opType);
+
     if (opType != 0) { // Player is a CPU
         playerSettings.showOnShieldAdvantage = false;
         playerSettings.showOnHitAdvantage = false;
         playerSettings.enableLedgeTechFramesOnLedgePopup = false;
         playerSettings.enableLedgeTechGalintPopup = false;
         playerSettings.enableLedgeTechFrameDisplay = false;
+        playerSettings.enableWavedashInfo = false;
     };
     playerData.prepareNextFrame();
 
@@ -413,6 +415,13 @@ void gatherData(PlayerData& playerData) {
             playerData.initLedgeTechWatcher(*fighter);
         }
         playerData.ledgeTechWatcher->process(*fighter);
+    }
+
+    if (WavedashInfoModule::isEnabled(playerData)) {
+        if (playerData.wavedashInfoModule == NULL) {
+            playerData.initWavedashInfo(*fighter);
+        }
+        playerData.wavedashInfoModule->process(*fighter);
     }
 }
 

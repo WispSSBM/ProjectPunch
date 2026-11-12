@@ -2,6 +2,7 @@
 
 #include <OS/OSError.h>
 #include "pp/actions.h"
+#include "pp/common.h"
 
 
 namespace PP {
@@ -12,7 +13,7 @@ void StatusChangeWatcher::notifyEventChangeStatus(
     soStatusData* statusData, 
     soModuleAccesser* moduleAccesser) 
 {
-    OSReport("ChangeActionEvent[f%d, P%d, %s]: %s[0x%0X] -> %s[0x%0X]\n",
+    DEBUG_STATUS_CHANGE("ChangeActionEvent[f%d, P%d, %s]: %s[0x%0X] -> %s[0x%0X]\n",
         frameCounter, playerData->playerNumber, playerData->fighterName, 
         actionName(prevStatusKind), prevStatusKind, actionName(statusKind), statusKind
     );
@@ -30,7 +31,7 @@ void StatusChangeWatcher::registerWith(Fighter* fighter) {
         m_eventUnit = dynamic_cast<soEventUnitWrapper<soStatusEventObserver>*>(eventManager->getEventUnit(fighterUnitId));
         if (m_eventUnit != NULL) {
             m_sendID = m_eventUnit->addObserverSub((soStatusEventObserver*)this, this->m_unitID);
-            OSReport("Added StatusChange observer @ 0x%0x to unitId: %d\n", this, fighterUnitId);
+            DEBUG_STATUS_CHANGE("Added StatusChange observer @ 0x%0x to unitId: %d\n", this, fighterUnitId);
         }
     }
 }

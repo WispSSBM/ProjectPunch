@@ -67,6 +67,12 @@ class PpunchMenu : public Menu {
         void cleanup();
         void handleInput();
         virtual void render(TextPrinter& printer, char* buffer, u32 maxLen);
+        virtual void toggle() {
+            Menu::toggle();
+            if (!this->isActive()) {
+                globalSettings.writeGlobalSettings(PP_SETTINGS_FILE_PATH);
+            }
+        };
         void drawBg(TextPrinter& printer);
         void drawOutline(TextPrinter& printer);
         void drawHighlightBox();

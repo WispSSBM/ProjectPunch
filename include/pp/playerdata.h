@@ -10,6 +10,7 @@
 #include "pp/common.h"
 #include "pp/popup.h"
 #include "pp/playerdata_on_frame.h"
+#include "pp/input/pad.h"
 
 namespace PP {
 
@@ -19,6 +20,7 @@ struct PlayerDisplayOptions;
 class AnimCmdWatcher;
 class StatusChangeWatcher;
 class LedgeTechWatcher;
+class WavedashInfoModule;
 
 
 // This is mostly meta-data that we track over multiple frames.
@@ -59,6 +61,7 @@ struct PlayerData {
     AnimCmdWatcher* animCmdWatcher;
     StatusChangeWatcher* statusChangeWatcher;
     LedgeTechWatcher* ledgeTechWatcher;
+    WavedashInfoModule* wavedashInfoModule;
 
     /* aliases for fields on Current*/
     u16 action() const;
@@ -89,6 +92,7 @@ struct PlayerData {
     void setAction(u16 newAction);
 
     void initLedgeTechWatcher(Fighter& fighter);
+    void initWavedashInfo(Fighter& fighter);
 
     /* Lifecycle methods */
     void printFighterState() const;

@@ -12,6 +12,8 @@ namespace PP {
 /* TODO: Look into using the game's native frame counter. */
 u32 frameCounter = 0;
 u32 menuFrameCounter = 0;
+const char* g_true = "T";
+const char* g_false = "F";
 char strManipBuffer[PP_STR_MANIP_SIZE]; // char(*)[PP_STR_MANIP_SIZE];
 
 /******/

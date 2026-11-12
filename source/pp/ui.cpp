@@ -55,7 +55,6 @@ void PpunchMenu::init() {
     globalSettingsPage->addOption(new IntOption<int>("Max On-Screen Displays", globalSettings.maxOsdLimit, 1, 10, true, false));
     globalSettingsPage->addOption(new IntOption<int>("Max Ledgedash Viz Frames", globalSettings.maxLedgedashVizFrames, 30, 64, true, false));
     globalSettingsPage->addOption(new BoolOption("Enable Frame Advance", globalSettings.enableFrameAdvance, true));
-    globalSettingsPage->addOption(new BoolOption("Invisible Tech Reaction Trainer", globalSettings.enableInvisibleTechs, true));
     globalSettingsPage->addOption(new ChoiceOption(
         "Frame Advance Button", 
         frameAdvanceButtonOptions, 
@@ -64,6 +63,7 @@ void PpunchMenu::init() {
     ));
     globalSettingsPage->addOption(new IntOption<int>("Frame Advance Hold Delay (Frames)", globalSettings.frameAdvanceRepeatDelayFrames, 5, 60, true, false));
     globalSettingsPage->addOption(new IntOption<int>("Actionable OoShield Minimum", globalSettings.shieldActionabilityTolerance, 0, 5, true, false));
+    globalSettingsPage->addOption(new BoolOption("Invisible Tech Reaction Trainer", globalSettings.enableInvisibleTechs, true));
     this->addPage(globalSettingsPage);
     
 
@@ -82,6 +82,7 @@ void PpunchMenu::init() {
         newPage.addOption(new BoolOption("GALINT OSD", playerSettings.enableLedgeTechGalintPopup));
         newPage.addOption(new BoolOption("Frames-on-ledge OSD", playerSettings.enableLedgeTechFramesOnLedgePopup));
         newPage.addOption(new BoolOption("Ledgedash Angle OSD", playerSettings.enableLedgeTechAirdodgeAngle));
+        newPage.addOption(new BoolOption("Wavedash Info", playerSettings.enableWavedashInfo));
         newPage.addOption(new BoolOption("Wait Overlay", playerSettings.enableWaitOverlay));
         newPage.addOption(new BoolOption("Dash Overlay", playerSettings.enableDashOverlay));
         newPage.addOption(new BoolOption("IASA Overlay", playerSettings.enableIasaOverlay));

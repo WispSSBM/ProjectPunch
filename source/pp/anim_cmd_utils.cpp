@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <types.h>
 #include "pp/anim_cmd_utils.h"
+#include "pp/common.h"
 
 #define _SNPRINTFC(buffer, len, fmt) \
 sprReturn = snprintf(buffer, len, fmt); \
@@ -282,7 +283,7 @@ int snprint_anim_cmd(char* buffer, size_t maxLen, const soAnimCmd& animCmd) {
             _SNPRINTF(buffer, maxLen - written, "PTR(0x%0X)", arg.m_rawValue);
             break;
         case(AnimCmd_Arg_Type_Bool):
-            _SNPRINTF(buffer, maxLen - written, "%s", arg.m_rawValue == 0 ? "false" : "true");
+            _SNPRINTF(buffer, maxLen - written, "%s", sbool(arg.m_rawValue));
             break;
         case(AnimCmd_Arg_Type_Variable):
             sprReturn = AnimCmdVariableArg(arg).snprint_self(buffer, maxLen - written);

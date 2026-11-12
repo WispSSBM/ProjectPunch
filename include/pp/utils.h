@@ -9,8 +9,11 @@
 
 namespace PP {
 
+soGeneralWorkSimple* getWorkVars(soModuleAccesser* moduleAccesser, WorkModuleVarType varType);
 soGeneralWorkSimple* getWorkVars(const Fighter& fighter, WorkModuleVarType varType);
+bool getRABit(soModuleAccesser* moduleAccesser, u32 idx);
 bool getRABit(const Fighter& fighter, u32 idx);
+void debugWorkModule(soModuleAccesser* moduleAccesser);
 void debugWorkModule(const Fighter& fighter);
 gfFileIOHandle* readFileBlocking(const char* file_name, Heaps::HeapType heapType, size_t len);
 

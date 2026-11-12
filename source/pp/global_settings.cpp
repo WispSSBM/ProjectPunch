@@ -7,6 +7,8 @@
 
 namespace PP {
 
+const char* header = "PP Settings: ";
+
 GlobalSettings::GlobalSettings() {
     this->maxOsdLimit = 3;
     this->maxLedgedashVizFrames = 50;
@@ -30,6 +32,7 @@ PlayerSettings::PlayerSettings() {
     enableLedgeTechFramesOnLedgePopup = false;
     enableLedgeTechGalintPopup = false;
     enableLedgeTechAirdodgeAngle = false;
+    enableWavedashInfo = false;
 }
 
 bool GlobalSettings::readGlobalSettings(const char* filepath) {
@@ -41,7 +44,7 @@ bool GlobalSettings::readGlobalSettings(const char* filepath) {
     }
 
     if (handle.getReturnStatus() != 0) {
-        OSReport("Project Punch settings file does not exist.\n");
+        OSReport("%sENOEXIST\n", header);
         return false;
     }
 
@@ -50,7 +53,7 @@ bool GlobalSettings::readGlobalSettings(const char* filepath) {
         OSSleepTicks(0, defaultSleepTicks());
     }
     if (handle.getReturnStatus() != 0) {
-        OSReport("Error reading Project Punch settings file: %d\n", handle.getReturnStatus());
+        OSReport("%sread error (%d)\n", header, handle.getReturnStatus());
         return false;
     }
 
@@ -60,11 +63,11 @@ bool GlobalSettings::readGlobalSettings(const char* filepath) {
     int* dataInts = (int*)data;
     int fileVersion = *dataInts++;
     if (fileVersion != PP_SETTINGS_FILE_VERSION) {
-        OSReport("Ignoring PPunch Settings file with old version[%d] != %d", fileVersion, PP_SETTINGS_FILE_VERSION);
+        OSReport("%sbad version (%d != %d)", header, fileVersion, PP_SETTINGS_FILE_VERSION);
         return false;
     }
     if (bufLen < (0x20 * 5)) {
-        OSReport("Ignoring PPunch Settings file that is too short.\n");
+        OSReport("%sshort file.\n", header);
         return false;
     }
 
@@ -91,16 +94,17 @@ bool GlobalSettings::readGlobalSettings(const char* filepath) {
         this->playerSettings[i].enableLedgeTechFrameDisplay = *dataBools++;
         this->playerSettings[i].enableLedgeTechFramesOnLedgePopup = *dataBools++;
         this->playerSettings[i].enableLedgeTechAirdodgeAngle = *dataBools++;
+        this->playerSettings[i].enableWavedashInfo = *dataBools++;
     }
 
     handle.release();
 
-    OSReport("Successfully read settings file.\n");
+    OSReport("%sread\n", header);
     return true;
 }
 
 bool GlobalSettings::writeGlobalSettings(const char* filepath) {
-    gfFileIOHandle handle;
+    gfFileIOHandle handle = gfFileIOHandle();
     size_t bufferSize = 0x20 * 5;
     char buffer[0x20*5];
     int* intBufferPos = (int*)buffer;
@@ -119,7 +123,7 @@ bool GlobalSettings::writeGlobalSettings(const char* filepath) {
 
     u32 bytesInBuffer;
     if ((bytesInBuffer = (u32)boolBufferPos - (u32)buffer) > 0x20) {
-        OSReport("Base PPunch Settings save too long: %d bytes\n", bytesInBuffer);
+        OSReport("%ssave too long: %db\n", header, bytesInBuffer);
         return false;
     }
 
@@ -137,9 +141,10 @@ bool GlobalSettings::writeGlobalSettings(const char* filepath) {
         *boolBufferPos++ = this->playerSettings[i].enableLedgeTechFrameDisplay;
         *boolBufferPos++ = this->playerSettings[i].enableLedgeTechFramesOnLedgePopup;
         *boolBufferPos++ = this->playerSettings[i].enableLedgeTechAirdodgeAngle;
+        *boolBufferPos++ = this->playerSettings[i].enableWavedashInfo;
 
         if ((bytesInBuffer = (u32)boolBufferPos - (u32)boolBufferPosStart) > 0x20) {
-            OSReport("PPunch Settings save for player %d too long: %d bytes\n", i+1, bytesInBuffer);
+            OSReport("%ssave for player %d too long: %d bytes\n", header, i+1, bytesInBuffer);
             return false;
         }
     }

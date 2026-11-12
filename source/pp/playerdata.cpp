@@ -9,6 +9,7 @@
 #include "pp/anim_cmd_watcher.h"
 #include "pp/status_change_watcher.h"
 #include "pp/ledge_tech.h"
+#include "pp/wavedash_info.h"
 #include "pp/graphics/text_printer.h"
 #include "pp/ui.h"
 #include "pp/main.h"
@@ -37,10 +38,12 @@ PlayerData::PlayerData() {
     animCmdWatcher = NULL;
     statusChangeWatcher = NULL;
     ledgeTechWatcher = NULL;
+    wavedashInfoModule = NULL;
 
     charId = Fighter_Mario;
     taskId = -1;
     entryId = -1;
+
 
     DEBUG_CTOR("PlayerData ctor: this=0x%x, current=0x%x, prev=0x%x\n", this, current, prev);
 };
@@ -57,6 +60,10 @@ PlayerData::~PlayerData() {
 
     if (ledgeTechWatcher != NULL) {
         delete ledgeTechWatcher;
+    }
+
+    if (wavedashInfoModule != NULL) {
+        delete wavedashInfoModule;
     }
 
     delete current;
@@ -359,6 +366,16 @@ void PlayerData::initLedgeTechWatcher(Fighter& fighter)
     LedgeTechWatcher* ledgeTechWatcher = new LedgeTechWatcher(&allPlayerData[playerNumber]);
     ledgeTechWatcher->registerWith(&fighter);
     allPlayerData[playerNumber].ledgeTechWatcher = ledgeTechWatcher;
+}
+
+void PlayerData::initWavedashInfo(Fighter& fighter)
+{
+    OSReport("WDI: registered");
+    WavedashInfoModule* _wavedashInfo = new WavedashInfoModule(&allPlayerData[playerNumber]);
+    OSReport("WDI: assigned");
+    _wavedashInfo->registerWith(&fighter);
+    allPlayerData[playerNumber].wavedashInfoModule = _wavedashInfo;
+    OSReport("WDI: registered");
 }
 #pragma endregion
 
